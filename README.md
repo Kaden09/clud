@@ -79,7 +79,31 @@ docker compose down -v
 
 The application services expose readiness information at
 `/actuator/health/readiness`. A `404` response from the application root is
-expected until controllers and gateway routes are implemented.
+expected until controllers are implemented in the downstream services.
+
+## Gateway routes
+
+Nginx forwards public traffic to the gateway. The gateway removes the first two
+path segments and proxies requests as follows:
+
+| Public path | Destination |
+| --- | --- |
+| `/api/identity/**` | Identity service |
+| `/api/files/**` | File service |
+| `/api/storage/**` | Storage service |
+| `/api/sharing/**` | Sharing service |
+
+For example, `/api/files/folders/123` is forwarded to `/folders/123` on the file
+service. Query parameters, request bodies, response statuses, and headers are
+preserved. The gateway also preserves an incoming `X-Request-ID` header or
+generates one when it is absent, then sends the same value to the destination
+service and returns it in the response.
+
+Destination URLs are configured through `IDENTITY_SERVICE_URL`,
+`FILE_SERVICE_URL`, `STORAGE_SERVICE_URL`, and `SHARING_SERVICE_URL`. Docker
+Compose reads their container-network values from `.env`. When running the
+gateway directly on the host, export the same variables with the corresponding
+`localhost` ports listed above.
 
 Kafka uses separate listeners:
 

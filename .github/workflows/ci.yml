@@ -47,5 +47,5 @@ jobs:
           cache: maven
           cache-dependency-path: ${{ matrix.service }}/pom.xml
 
-      - name: Run tests
-        run: ./mvnw --batch-mode --no-transfer-progress test
+      - name: Build and test
+        run: ./mvnw --batch-mode --no-transfer-progress verify

@@ -98,6 +98,10 @@ cd gateway
 Use the same command from `identity`, `file`, `storage`, or `sharing` to test a
 specific service.
 
+GitHub Actions builds and tests all five services independently on pull requests
+and on pushes to `dev` or `main`. The workflow can also be started manually from
+the Actions tab.
+
 ## Configuration and data
 
 Local defaults are documented in `.env.example`. Do not commit `.env` or place

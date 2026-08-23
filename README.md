@@ -97,7 +97,10 @@ For example, `/api/files/folders/123` is forwarded to `/folders/123` on the file
 service. Query parameters, request bodies, response statuses, and headers are
 preserved. The gateway also preserves an incoming `X-Request-ID` header or
 generates one when it is absent, then sends the same value to the destination
-service and returns it in the response.
+service and returns it in the response. Each gateway request is logged at start
+and completion with its request ID, HTTP method, path, response status, and
+duration. Failed requests are logged at warning level without request bodies or
+headers.
 
 Destination URLs are configured through `IDENTITY_SERVICE_URL`,
 `FILE_SERVICE_URL`, `STORAGE_SERVICE_URL`, and `SHARING_SERVICE_URL`. Docker

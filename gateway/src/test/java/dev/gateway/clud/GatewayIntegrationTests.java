@@ -16,15 +16,19 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ExtendWith(OutputCaptureExtension.class)
 class GatewayIntegrationTests {
 
 	private static final HttpServer UPSTREAM = startUpstream();
@@ -98,6 +102,26 @@ class GatewayIntegrationTests {
 		assertThat(UUID.fromString(requestId)).isNotNull();
 		assertThat(response.headers().allValues(RequestIdFilter.REQUEST_ID_HEADER)).containsExactly(requestId);
 		assertThat(response.body()).contains("requestId=" + requestId);
+	}
+
+	@Test
+	void logsCompletedRequestWithCorrelationData(CapturedOutput output) throws Exception {
+		String requestId = "logging-test-" + UUID.randomUUID();
+		HttpRequest request = HttpRequest.newBuilder(gatewayUri("/api/files/folders/1"))
+				.header(RequestIdFilter.REQUEST_ID_HEADER, requestId)
+				.GET()
+				.build();
+
+		HttpResponse<String> response = send(request);
+
+		assertThat(response.statusCode()).isEqualTo(200);
+		assertThat(output).contains(
+				"Gateway request completed:",
+				"requestId=" + requestId,
+				"method=GET",
+				"path=/api/files/folders/1",
+				"status=200",
+				"durationMs=");
 	}
 
 	@Test

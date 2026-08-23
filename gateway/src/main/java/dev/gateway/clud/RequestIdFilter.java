@@ -17,6 +17,9 @@ import jakarta.servlet.http.HttpServletResponseWrapper;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Component
 public class RequestIdFilter extends OncePerRequestFilter {
 
@@ -34,7 +37,34 @@ public class RequestIdFilter extends OncePerRequestFilter {
 
 		HttpServletResponse wrappedResponse = new RequestIdHeaderResponse(response, requestId);
 		wrappedResponse.setHeader(REQUEST_ID_HEADER, requestId);
-		filterChain.doFilter(new RequestIdHeaderRequest(request, requestId), wrappedResponse);
+
+		long startedAt = System.nanoTime();
+    
+		log.info("Gateway request started: requestId={} method={} path={}",
+				requestId, request.getMethod(), request.getRequestURI());
+		try {
+			filterChain.doFilter(new RequestIdHeaderRequest(request, requestId), wrappedResponse);
+			log.info("Gateway request completed: requestId={} method={} path={} status={} durationMs={}",
+					requestId,
+					request.getMethod(),
+					request.getRequestURI(),
+					wrappedResponse.getStatus(),
+					elapsedMilliseconds(startedAt));
+		}
+		catch (IOException | ServletException | RuntimeException exception) {
+			log.warn("Gateway request failed: requestId={} method={} path={} status={} durationMs={} exception={}",
+					requestId,
+					request.getMethod(),
+					request.getRequestURI(),
+					wrappedResponse.getStatus(),
+					elapsedMilliseconds(startedAt),
+					exception.getClass().getSimpleName());
+			throw exception;
+		}
+	}
+
+	private static long elapsedMilliseconds(long startedAt) {
+		return (System.nanoTime() - startedAt) / 1_000_000;
 	}
 
 	private static final class RequestIdHeaderRequest extends HttpServletRequestWrapper {

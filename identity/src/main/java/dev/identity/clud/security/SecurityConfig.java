@@ -43,6 +43,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Публичные эндпоинты (регистрация, логин)
                         .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/actuator/health/**").permitAll()
 
                         // ADMIN-only
                         .requestMatchers("/admin/**").hasRole("ADMIN")

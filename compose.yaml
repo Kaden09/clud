@@ -45,7 +45,21 @@ services:
       - "${IDENTITY_PORT}:8080"
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      IDENTITY_DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      IDENTITY_DATABASE_USERNAME: ${POSTGRES_USER}
+      IDENTITY_DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      IDENTITY_DDL_AUTO: ${IDENTITY_DDL_AUTO}
+      IDENTITY_SHOW_SQL: ${IDENTITY_SHOW_SQL}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_TOKEN_EXPIRATION_MS: ${JWT_ACCESS_TOKEN_EXPIRATION_MS}
+      JWT_REFRESH_TOKEN_EXPIRATION_MS: ${JWT_REFRESH_TOKEN_EXPIRATION_MS}
+      COOKIE_SECURE: ${COOKIE_SECURE}
+      COOKIE_HTTP_ONLY: ${COOKIE_HTTP_ONLY}
+      COOKIE_SAME_SITE: ${COOKIE_SAME_SITE}
+      COOKIE_PATH: ${COOKIE_PATH}
     depends_on:
+      postgres:
+        condition: service_healthy
       kafka:
         condition: service_healthy
     healthcheck:

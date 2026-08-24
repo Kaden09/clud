@@ -1,23 +1,16 @@
-server:
-  servlet:
-    context-path: /api
-  port: ${IDENTITY_PORT:8081}
-
 spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/identity
-    username: postgres
-    password: postgres
-    driverClassName: org.postgresql.Driver
-  jpa:
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-    show-sql: true
-    hibernate:
-      ddl-auto: create-drop
   application:
     name: identity
+  datasource:
+    url: ${IDENTITY_DATABASE_URL:jdbc:postgresql://localhost:5432/clud}
+    username: ${IDENTITY_DATABASE_USERNAME:clud}
+    password: ${IDENTITY_DATABASE_PASSWORD:clud}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    show-sql: ${IDENTITY_SHOW_SQL:false}
+    hibernate:
+      ddl-auto: ${IDENTITY_DDL_AUTO:validate}
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
@@ -34,15 +27,14 @@ management:
       probes:
         enabled: true
 
-
 jwt:
-  secret: 119d3bc12fe8a3b8e571094aa900744560e08dcbc82f4c5dcc3e9c30291448ac8c1f7dcea8351c939d921b561715d1cfdc2202a4e5d72c53d50234390c8b680b
-  access-token-expiration: 900000
-  refresh-token-expiration: 604800000
+  secret: ${JWT_SECRET}
+  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION_MS:900000}
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION_MS:604800000}
 
 app:
   cookie:
-    secure: false
-    http-only: true
-    same-site: Lax
-    path: /
+    secure: ${COOKIE_SECURE:false}
+    http-only: ${COOKIE_HTTP_ONLY:true}
+    same-site: ${COOKIE_SAME_SITE:Lax}
+    path: ${COOKIE_PATH:/}

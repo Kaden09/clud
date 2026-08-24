@@ -55,7 +55,7 @@ class FileApiIntegrationTests {
 
 	@BeforeEach
 	void cleanDatabase() {
-		repository.deleteAll();
+		repository.deleteAllInBatch();
 	}
 
 	@Test

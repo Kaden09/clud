@@ -73,7 +73,8 @@ public class FileNodeService {
 	@Transactional
 	public FileNode rename(UUID ownerId, UUID nodeId, RenameNodeRequest request) {
 		FileNode node = getActive(ownerId, nodeId);
-		if (node.getName().equals(request.name().trim())) {
+		if (node.getName().equalsIgnoreCase(request.name().trim())) {
+			node.rename(request.name());
 			return node;
 		}
 		UUID parentId = node.getParent() == null ? null : node.getParent().getId();

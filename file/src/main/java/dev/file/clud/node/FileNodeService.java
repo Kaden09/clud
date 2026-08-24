@@ -8,20 +8,24 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import dev.file.clud.error.InvalidNodeOperationException;
 import dev.file.clud.error.NodeConflictException;
 import dev.file.clud.error.NodeNotFoundException;
+import dev.file.clud.event.FileLifecycleEvent;
 
 @Service
 public class FileNodeService {
 
 	private final FileNodeRepository repository;
+	private final ApplicationEventPublisher eventPublisher;
 
-	public FileNodeService(FileNodeRepository repository) {
+	public FileNodeService(FileNodeRepository repository, ApplicationEventPublisher eventPublisher) {
 		this.repository = repository;
+		this.eventPublisher = eventPublisher;
 	}
 
 	@Transactional
@@ -35,13 +39,15 @@ public class FileNodeService {
 	public FileNode createFile(UUID ownerId, CreateFileRequest request) {
 		FileNode parent = resolveActiveFolder(ownerId, request.parentId());
 		ensureNameAvailable(ownerId, request.parentId(), request.name());
-		return repository.save(FileNode.file(
+		FileNode file = repository.save(FileNode.file(
 				ownerId,
 				parent,
 				request.name(),
 				request.storageKey(),
 				request.contentType(),
 				request.sizeBytes()));
+		eventPublisher.publishEvent(FileLifecycleEvent.uploaded(file));
+		return file;
 	}
 
 	@Transactional(readOnly = true)
@@ -99,6 +105,9 @@ public class FileNodeService {
 		Instant deletedAt = Instant.now();
 		for (FileNode node : tree) {
 			node.moveToTrash(deletedAt, node == root);
+			if (!node.isFolder()) {
+				eventPublisher.publishEvent(FileLifecycleEvent.deleted(node));
+			}
 		}
 	}
 

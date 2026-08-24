@@ -113,6 +113,18 @@ Kafka uses separate listeners:
 - applications inside Docker connect to `kafka:29092`;
 - tools running on the host connect to `localhost:9092`.
 
+## File metadata service
+
+The File Service now persists files and folders in its own `file_service`
+PostgreSQL schema. It supports directory browsing, rename, move, recursive trash,
+restore, and versioned Kafka lifecycle events. File bytes remain owned by the
+future Storage Service.
+
+Business requests require an `X-User-ID` UUID. This is a temporary development
+contract until Identity authentication allows the Gateway to supply a trusted
+user header. See [the File Service documentation](file/README.md) for endpoints,
+examples, persistence rules, and event payloads.
+
 ## Running tests
 
 Each service has an independent Maven build and Maven Wrapper. For example:

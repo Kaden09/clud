@@ -35,5 +35,9 @@ When Gateway runs locally, the service URLs in its `.env` point to the
 published host ports of Docker containers. When Gateway runs in Docker, the
 root `.env` supplies Docker-network addresses instead.
 
+A locally running Gateway is tested directly through `http://localhost:8080`.
+Nginx is bypassed because its current upstream points to the Docker `gateway`
+service.
+
 See the [root README](../README.md#hybrid-development) for complete mixed
 Docker and local startup examples.

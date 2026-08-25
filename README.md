@@ -110,8 +110,9 @@ cp .env.example .env
 ./mvnw spring-boot:run
 ```
 
-Use `http://localhost:8080` directly because the Nginx container is not part
-of this command.
+When Gateway runs locally, Nginx is intentionally bypassed because its current
+upstream points to the Docker `gateway` service. Start test requests directly
+at `http://localhost:8080`.
 
 ### Run File locally with Gateway in Docker
 

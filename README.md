@@ -1,65 +1,146 @@
 # Clud
 
-Clud is an educational cloud file storage system built as a set of Spring Boot
-services. The current foundation provides containerized applications, a reverse
-proxy, and the local infrastructure required for further development.
+Clud is an educational cloud file storage system built as five Spring Boot
+services. The repository contains the applications, Nginx, and the local
+infrastructure needed to run the complete system.
 
 ## Architecture
 
 ```text
 Client -> Nginx -> Gateway
-
-Gateway / Identity / File / Storage / Sharing
-                         |
-        PostgreSQL / Redis / Kafka / MinIO
+                    |
+                    +-> Identity
+                    +-> File
+                    +-> Storage
+                    +-> Sharing
+                              |
+             PostgreSQL / Redis / Kafka / MinIO
 ```
 
-All containers share the default Docker Compose network. Nginx forwards public
-HTTP traffic to the gateway. Application routing and business endpoints will be
-implemented in later phases.
+All Docker containers share the default Compose network. Nginx forwards public
+traffic to Gateway, which selects the destination service by request path.
+
+## Services
+
+| Service | Documentation | Host port |
+| --- | --- | --- |
+| Gateway | [gateway/README.md](gateway/README.md) | `8080` |
+| Identity | [identity/README.md](identity/README.md) | `8081` |
+| File | [file/README.md](file/README.md) | `8082` |
+| Storage | [storage/README.md](storage/README.md) | `8083` |
+| Sharing | [sharing/README.md](sharing/README.md) | `8084` |
 
 ## Prerequisites
 
 - Docker with Docker Compose
 - Java 21 or newer for running services outside Docker
 
-## Local startup
+## Environment files
 
-Create the local environment file once:
+The repository uses two kinds of dotenv files:
+
+- the root `.env` configures Docker Compose and container-to-container
+  addresses;
+- `<service>/.env` configures a service started locally from its own
+  directory.
+
+Create only the files required for the way you are running the project:
 
 ```bash
 cp .env.example .env
+cp file/.env.example file/.env
 ```
 
-Build and start the complete stack:
+Every service has its own `.env.example` and README with the supported
+variables. Quoted dotenv values are supported. Real environment variables take
+precedence over values from `.env`. All `.env` files are ignored by Git.
+
+### Root variables
+
+| Variable group | Purpose |
+| --- | --- |
+| `NGINX_PORT`, `*_PORT` | Ports published from containers to the host |
+| `*_SERVICE_URL` | Addresses used by Gateway inside the Compose network |
+| `POSTGRES_*` | PostgreSQL database, credentials, and host port |
+| `REDIS_PORT` | Redis host port |
+| `MINIO_*` | MinIO credentials and API/console ports |
+| `KAFKA_BOOTSTRAP_SERVERS` | Kafka address supplied to application containers |
+| `KAFKA_NODE_ID`, `KAFKA_PROCESS_ROLES`, `KAFKA_PORT` | Local Kafka node configuration |
+
+Do not place production credentials in `.env.example`.
+
+## Full Docker startup
+
+Create the root environment file and start the complete stack:
 
 ```bash
+cp .env.example .env
 docker compose up -d --build
-```
-
-Check container and health statuses:
-
-```bash
 docker compose ps
 ```
 
-Follow logs:
+Follow logs or stop the stack:
 
 ```bash
 docker compose logs -f
-```
-
-Stop the stack while preserving data:
-
-```bash
 docker compose down
 ```
 
-Stop the stack and remove all local data volumes:
+Use `docker compose down -v` only when the local data volumes should also be
+deleted.
+
+## Hybrid development
+
+Docker Compose can run selected services while one application runs directly
+on the host.
+
+### Run Gateway locally
+
+Start infrastructure and all downstream services:
 
 ```bash
-docker compose down -v
+docker compose up -d postgres redis minio kafka identity file storage sharing
 ```
+
+Then start Gateway with its local addresses:
+
+```bash
+cd gateway
+cp .env.example .env
+./mvnw spring-boot:run
+```
+
+When Gateway runs locally, Nginx is intentionally bypassed because its current
+upstream points to the Docker `gateway` service. Start test requests directly
+at `http://localhost:8080`.
+
+### Run File locally with Gateway in Docker
+
+Start infrastructure and the remaining downstream services:
+
+```bash
+docker compose up -d postgres redis minio kafka identity storage sharing
+```
+
+Start File on the host:
+
+```bash
+cd file
+cp .env.example .env
+./mvnw spring-boot:run
+```
+
+From another shell at the repository root, point the Dockerized Gateway to the
+host service and start the public path:
+
+```bash
+FILE_SERVICE_URL=http://host.docker.internal:8082 \
+  docker compose up -d gateway nginx
+```
+
+The same approach works for Identity, Storage, or Sharing by replacing the
+corresponding service URL. Compose maps `host.docker.internal` to the Linux
+host for Gateway.
 
 ## Local ports
 
@@ -77,75 +158,51 @@ docker compose down -v
 | MinIO API | `http://localhost:9000` |
 | MinIO Console | `http://localhost:9001` |
 
-The application services expose readiness information at
-`/actuator/health/readiness`. A `404` response from the application root is
-expected until controllers are implemented in the downstream services.
+Application readiness is available at `/actuator/health/readiness`.
+
+Kafka has separate addresses:
+
+- containers connect to `kafka:29092`;
+- applications running on the host connect to `localhost:9092`.
 
 ## Gateway routes
 
-Nginx forwards public traffic to the gateway. The gateway removes the first two
-path segments and proxies requests as follows:
-
 | Public path | Destination |
 | --- | --- |
-| `/api/identity/**` | Identity service |
-| `/api/files/**` | File service |
-| `/api/storage/**` | Storage service |
-| `/api/sharing/**` | Sharing service |
+| `/api/identity/**` | Identity |
+| `/api/files/**` | File |
+| `/api/storage/**` | Storage |
+| `/api/sharing/**` | Sharing |
 
-For example, `/api/files/folders/123` is forwarded to `/folders/123` on the file
-service. Query parameters, request bodies, response statuses, and headers are
-preserved. The gateway also preserves an incoming `X-Request-ID` header or
-generates one when it is absent, then sends the same value to the destination
-service and returns it in the response. Each gateway request is logged at start
-and completion with its request ID, HTTP method, path, response status, and
-duration. Failed requests are logged at warning level without request bodies or
-headers.
-
-Destination URLs are configured through `IDENTITY_SERVICE_URL`,
-`FILE_SERVICE_URL`, `STORAGE_SERVICE_URL`, and `SHARING_SERVICE_URL`. Docker
-Compose reads their container-network values from `.env`. When running the
-gateway directly on the host, export the same variables with the corresponding
-`localhost` ports listed above.
-
-Kafka uses separate listeners:
-
-- applications inside Docker connect to `kafka:29092`;
-- tools running on the host connect to `localhost:9092`.
+Gateway removes the first two path segments before forwarding a request. It
+also preserves an incoming `X-Request-ID` or generates one when absent.
 
 ## File metadata service
 
-The File Service now persists files and folders in its own `file_service`
-PostgreSQL schema. It supports directory browsing, rename, move, recursive trash,
-restore, and versioned Kafka lifecycle events. File bytes remain owned by the
-future Storage Service.
+The File Service persists files and folders in the `file_service` PostgreSQL
+schema. It supports directory browsing, rename, move, recursive trash, restore,
+and versioned Kafka lifecycle events. File bytes remain owned by the future
+Storage Service.
 
 Business requests require an `X-User-ID` UUID. This is a temporary development
-contract until Identity authentication allows the Gateway to supply a trusted
-user header. See [the File Service documentation](file/README.md) for endpoints,
+contract until Identity authentication allows Gateway to supply a trusted user
+header. See [the File Service documentation](file/README.md) for endpoints,
 examples, persistence rules, and event payloads.
 
-## Running tests
+## Testing
 
-Each service has an independent Maven build and Maven Wrapper. For example:
+Each service has an independent Maven Wrapper:
 
 ```bash
 cd gateway
 ./mvnw test
 ```
 
-Use the same command from `identity`, `file`, `storage`, or `sharing` to test a
-specific service.
+Use the same command inside `identity`, `file`, `storage`, or `sharing`.
+GitHub Actions builds and tests all five services independently on pull
+requests and pushes to `dev` or `main`.
 
-GitHub Actions builds and tests all five services independently on pull requests
-and on pushes to `dev` or `main`. The workflow can also be started manually from
-the Actions tab.
+## Data
 
-## Configuration and data
-
-Local defaults are documented in `.env.example`. Do not commit `.env` or place
-production credentials in the example file.
-
-PostgreSQL, Redis, Kafka, and MinIO store their state in named Docker volumes.
-Regular `docker compose down` preserves those volumes; `docker compose down -v`
-deletes them.
+PostgreSQL, Redis, Kafka, and MinIO use named Docker volumes. A regular
+`docker compose down` preserves them; `docker compose down -v` deletes them.

@@ -4,14 +4,16 @@ package dev.identity.clud.security;
 import dev.identity.clud.user.User;
 import dev.identity.clud.user.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
+import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
@@ -19,17 +21,33 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final UserRepository userRepository;
 
     @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException(
-                        "Пользователь с email " + email + " не найден"
-                ));
+    @Transactional(readOnly = true)
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        if (username == null || username.isBlank()) {
+            log.warn("Authentication attempt with empty username");
+            throw new UsernameNotFoundException("Username is empty");
+        }
 
-        // Превращаем нашего пользователя в формат, понятный Spring Security
-        return new org.springframework.security.core.userdetails.User(
-                user.getEmail(),
-                user.getPassword(),
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
-        );
+        String normalized = username.toLowerCase().trim();
+
+        User user;
+        if (isValidUuid(normalized)) {
+            user = userRepository.findById(UUID.fromString(normalized))
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+        } else {
+            user = userRepository.findByEmail(normalized)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+        }
+
+        return CustomUserDetails.build(user);
+    }
+
+    private boolean isValidUuid(String str) {
+        try {
+            UUID.fromString(str);
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 }

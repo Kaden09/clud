@@ -22,7 +22,7 @@ public class User {
     @Column(updatable = false, nullable = false)
     private UUID id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String email;
 
     @Column(nullable = false)
@@ -31,6 +31,14 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean enabled = true;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean accountNonLocked = true;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

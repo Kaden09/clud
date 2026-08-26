@@ -1,70 +1,90 @@
 package dev.identity.clud.jwt;
 
+import dev.identity.clud.exception.InvalidTokenException;
+import dev.identity.clud.security.CustomUserDetails;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
+import java.util.UUID;
 import java.util.function.Function;
 
 @Service
-@RequiredArgsConstructor
 public class JwtService {
 
     private final JwtProperties jwtProperties;
+    private final SecretKey signingKey;
 
-    // Генерация SecretKey из строки секрета
-    private SecretKey getSigningKey() {
+    public JwtService(JwtProperties jwtProperties) {
+        this.jwtProperties = jwtProperties;
         byte[] keyBytes = Decoders.BASE64.decode(jwtProperties.getSecret());
-        return Keys.hmacShaKeyFor(keyBytes);
+        this.signingKey = Keys.hmacShaKeyFor(keyBytes);
     }
 
-    // ==================== ГЕНЕРАЦИЯ ТОКЕНОВ ====================
-
-    public String generateAccessToken(UserDetails userDetails) {
-        return generateToken(new HashMap<>(), userDetails, jwtProperties.getAccessTokenExpiration());
+    private SecretKey getSigningKey() {
+        return signingKey;
     }
 
-    public String generateRefreshToken(UserDetails userDetails) {
-        return generateToken(new HashMap<>(), userDetails, jwtProperties.getRefreshTokenExpiration());
+    public String generateAccessToken(CustomUserDetails userDetails) {
+        return buildToken(userDetails, jwtProperties.getAccessTokenExpiration(), "access", null);
     }
 
-    private String generateToken(
-            Map<String, Object> extraClaims,
-            UserDetails userDetails,
-            long expiration) {
+    public String generateRefreshToken(CustomUserDetails userDetails) {
+        String jti = UUID.randomUUID().toString();
+        return buildToken(userDetails, jwtProperties.getRefreshTokenExpiration(), "refresh", jti);
+    }
 
-        return Jwts.builder()
-                .claims(extraClaims)
-                .subject(userDetails.getUsername()) // в нашем случае — это email
+    private String buildToken(CustomUserDetails userDetails, long expiration, String tokenType, String jti) {
+        List<String> roles = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .toList();
+
+        var builder = Jwts.builder()
+                .subject(userDetails.getId().toString())
+                .claim("email", userDetails.getEmail())
+                .claim("role", roles)
+                .claim("type", tokenType)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(getSigningKey(), Jwts.SIG.HS256)
-                .compact();
+                .signWith(getSigningKey(), Jwts.SIG.HS256);
+
+        if (jti != null) {
+            builder.id(jti);
+        }
+
+        return builder.compact();
     }
 
-    // ==================== ВАЛИДАЦИЯ ТОКЕНОВ ====================
-
-    public boolean isTokenValid(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+    public boolean isTokenValid(String token, CustomUserDetails userDetails, String expectedType) {
+        final String userId = extractSubject(token);
+        final String type = extractClaim(token, claims -> claims.get("type", String.class));
+        return userId.equals(userDetails.getId().toString())
+                && expectedType.equals(type)
+                && !isTokenExpired(token);
     }
 
     public boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
 
-    // ==================== ИЗВЛЕЧЕНИЕ ДАННЫХ ====================
-
-    public String extractUsername(String token) {
+    public String extractSubject(String token) {
         return extractClaim(token, Claims::getSubject);
+    }
+
+    public UUID extractUserId(String token) {
+        return UUID.fromString(extractSubject(token));
+    }
+
+    public String extractJti(String token) {
+        return extractClaim(token, Claims::getId);
     }
 
     private Date extractExpiration(String token) {
@@ -77,10 +97,17 @@ public class JwtService {
     }
 
     private Claims extractAllClaims(String token) {
-        return Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+        try {
+            return Jwts.parser()
+                    .verifyWith(signingKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+        } catch (ExpiredJwtException e) {
+            throw new InvalidTokenException("Token expired");
+        } catch (JwtException e) {
+            throw new InvalidTokenException("Invalid token: " + e.getMessage());
+        }
     }
 }
+

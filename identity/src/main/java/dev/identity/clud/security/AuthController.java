@@ -1,5 +1,7 @@
 package dev.identity.clud.security;
 
+
+import dev.identity.clud.jwt.AccessTokenResponse;
 import dev.identity.clud.user.dto.LoginRequestDto;
 import dev.identity.clud.user.dto.RegisterRequestDto;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,30 +23,31 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<Map<String, String>> register(@Valid @RequestBody RegisterRequestDto requestDto) {
         authService.register(requestDto);
-        return ResponseEntity.ok(Map.of("message", "Регистрация прошла успешно"));
+        return ResponseEntity.ok(Map.of("message", "Registration successful"));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> login(
+    public ResponseEntity<AccessTokenResponse> login(
             @Valid @RequestBody LoginRequestDto requestDto,
             HttpServletResponse response) {
 
-        authService.login(requestDto, response);
-        return ResponseEntity.ok(Map.of("message", "Вход выполнен успешно"));
+        return ResponseEntity.ok(authService.login(requestDto, response));
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<Map<String, String>> refresh(
+    public ResponseEntity<AccessTokenResponse> refresh(
             HttpServletRequest request,
             HttpServletResponse response) {
 
-        authService.refresh(request, response);
-        return ResponseEntity.ok(Map.of("message", "Токены обновлены"));
+        return ResponseEntity.ok(authService.refresh(request, response));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Map<String, String>> logout(HttpServletResponse response) {
-        authService.logout(response);
-        return ResponseEntity.ok(Map.of("message", "Выход выполнен успешно"));
+    public ResponseEntity<Map<String, String>> logout(
+            HttpServletRequest request,
+            HttpServletResponse response) {
+
+        authService.logout(request, response);
+        return ResponseEntity.ok(Map.of("message", "Logout successful"));
     }
 }

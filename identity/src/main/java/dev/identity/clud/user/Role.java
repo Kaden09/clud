@@ -2,5 +2,9 @@ package dev.identity.clud.user;
 
 public enum Role {
     ADMIN,
-    USER
+    USER;
+
+    public String getAuthority() {
+        return "ROLE_" + name();
+    }
 }

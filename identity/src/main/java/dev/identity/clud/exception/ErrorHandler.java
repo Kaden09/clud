@@ -3,66 +3,100 @@ package dev.identity.clud.exception;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.ServletWebRequest;
+import org.springframework.web.context.request.WebRequest;
 
+import java.nio.file.AccessDeniedException;
 import java.time.DateTimeException;
 import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestControllerAdvice
 public class ErrorHandler {
 
-    @ExceptionHandler({MethodArgumentNotValidException.class, DateTimeException.class})
-    public ResponseEntity<ErrorResponse> handleValidationException(final Exception e) {
-        log.warn("Ошибка валидации: {}", e.getMessage());
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException e, WebRequest request) {
+        Map<String, String> details = e.getBindingResult().getFieldErrors().stream()
+                .collect(Collectors.toMap(
+                        FieldError::getField,
+                        fieldError -> Objects.requireNonNullElse(fieldError.getDefaultMessage(), "Invalid value")
+                ));
 
-        var error = new ErrorResponse(
-                "Bad Request",
-                e.getMessage(),
-                LocalDateTime.now()
+        log.warn("Validation failed on {}: {}", getPath(request), details);
+
+        ErrorResponse response = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Validation Failed",
+                "Request validation failed",
+                getPath(request),
+                LocalDateTime.now(),
+                details
         );
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        return ResponseEntity.badRequest().body(response);
     }
 
-    @ExceptionHandler
-    public ResponseEntity<ErrorResponse> handleEmailAlreadyExistsExceptionException(final EmailAlreadyExistsException e) {
-        log.warn("Email уже занят: {}", e.getMessage());
-
-        var error = new ErrorResponse(
-                "Email Already Exists Exception",
-                e.getMessage(),
-                LocalDateTime.now()
-        );
-
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    @ExceptionHandler(EmailAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleEmailExists(EmailAlreadyExistsException e, WebRequest request) {
+        log.warn("Email conflict on {}: {}", getPath(request), e.getMessage());
+        return buildResponse(HttpStatus.CONFLICT, "Conflict", e.getMessage(), request);
     }
 
-    @ExceptionHandler
-    public ResponseEntity<ErrorResponse> handleInvalidTokenException(final InvalidTokenException e) {
-        log.warn("Передан невалидный токен: {}", e.getMessage());
-
-        var error = new ErrorResponse(
-                "Invalid Token Exception",
-                e.getMessage(),
-                LocalDateTime.now()
-        );
-
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    @ExceptionHandler({InvalidTokenException.class, UsernameNotFoundException.class, BadCredentialsException.class})
+    public ResponseEntity<ErrorResponse> handleAuth(RuntimeException e, WebRequest request) {
+        log.warn("Authentication error on {}: {}", getPath(request), e.getMessage());
+        return buildResponse(HttpStatus.UNAUTHORIZED, "Unauthorized", e.getMessage(), request);
     }
 
-    @ExceptionHandler
-    public ResponseEntity<ErrorResponse> handleThrowable(final Throwable e) {
-        log.error("Внутренняя ошибка сервера: {}", e.getMessage(), e);
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException e, WebRequest request) {
+        log.warn("Access denied on {}: {}", getPath(request), e.getMessage());
+        return buildResponse(HttpStatus.FORBIDDEN, "Forbidden", e.getMessage(), request);
+    }
 
-        var error = new ErrorResponse(
-                "Internal Server Error",
-                e.getMessage(),
-                LocalDateTime.now()
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleNotReadable(HttpMessageNotReadableException e, WebRequest request) {
+        log.warn("Malformed request on {}: {}", getPath(request), e.getMessage());
+        return buildResponse(HttpStatus.BAD_REQUEST, "Bad Request", "Malformed JSON or missing request body", request);
+    }
+
+    @ExceptionHandler(DateTimeException.class)
+    public ResponseEntity<ErrorResponse> handleDateTime(DateTimeException e, WebRequest request) {
+        log.warn("Date/time parse error on {}: {}", getPath(request), e.getMessage());
+        return buildResponse(HttpStatus.BAD_REQUEST, "Bad Request", e.getMessage(), request);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleException(Exception e, WebRequest request) {
+        log.error("Unexpected error on {}: {}", getPath(request), e.getMessage(), e);
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", e.getMessage(), request);
+    }
+
+    private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String error, String message, WebRequest request) {
+        ErrorResponse body = new ErrorResponse(
+                status.value(),
+                error,
+                message,
+                getPath(request),
+                LocalDateTime.now(),
+                null
         );
+        return ResponseEntity.status(status).body(body);
+    }
 
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+    private String getPath(WebRequest request) {
+        if (request instanceof ServletWebRequest swr) {
+            return swr.getRequest().getRequestURI();
+        }
+        return "unknown";
     }
 }

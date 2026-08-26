@@ -27,7 +27,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import dev.file.clud.event.FileLifecycleEvent;
-import dev.file.clud.node.FileNodeRepository;
+import dev.file.clud.node.repository.FileNodeRepository;
 
 @Testcontainers
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)

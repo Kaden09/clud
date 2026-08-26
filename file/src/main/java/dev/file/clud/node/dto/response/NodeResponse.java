@@ -1,7 +1,10 @@
-package dev.file.clud.node;
+package dev.file.clud.node.dto.response;
 
 import java.time.Instant;
 import java.util.UUID;
+
+import dev.file.clud.node.entity.FileNode;
+import dev.file.clud.node.entity.NodeType;
 
 public record NodeResponse(
 		UUID id,

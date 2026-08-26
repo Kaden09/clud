@@ -1,8 +1,10 @@
-package dev.file.clud.node;
+package dev.file.clud.node.dto.response;
 
 import java.util.List;
 
 import org.springframework.data.domain.Page;
+
+import dev.file.clud.node.entity.FileNode;
 
 public record PageResponse<T>(
 		List<T> content,

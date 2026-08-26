@@ -3,7 +3,7 @@ package dev.file.clud.event;
 import java.time.Instant;
 import java.util.UUID;
 
-import dev.file.clud.node.FileNode;
+import dev.file.clud.node.entity.FileNode;
 
 public record FileLifecycleEvent(
 		UUID eventId,

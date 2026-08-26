@@ -1,4 +1,4 @@
-package dev.file.clud.node;
+package dev.file.clud.node.dto.request;
 
 import java.util.UUID;
 

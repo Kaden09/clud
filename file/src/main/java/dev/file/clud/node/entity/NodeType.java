@@ -1,4 +1,4 @@
-package dev.file.clud.node;
+package dev.file.clud.node.entity;
 
 public enum NodeType {
 	FILE,

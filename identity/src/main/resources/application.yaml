@@ -47,8 +47,5 @@ app:
   cookie:
     secure: ${COOKIE_SECURE:false}
     same-site: ${COOKIE_SAME_SITE:Lax}
-    path: ${COOKIE_PATH:/api/auth}
-
-server:
-  servlet:
-    context-path: /api
+    # Cookie использует публичный путь: браузер не видит внутренний StripPrefix Gateway.
+    path: ${COOKIE_PATH:/api/identity/auth}

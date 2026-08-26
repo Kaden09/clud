@@ -18,7 +18,7 @@ Identity is the service boundary for authentication, users, and access identitie
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:3000` | Comma-separated trusted browser origins |
 | `COOKIE_SECURE` | `false` | Set to `true` when HTTPS is used |
 | `COOKIE_SAME_SITE` | `Lax` | Refresh-cookie SameSite policy |
-| `COOKIE_PATH` | `/api/auth` | Public path on which the refresh cookie is sent |
+| `COOKIE_PATH` | `/api/identity/auth` | Public Gateway path on which the refresh cookie is sent |
 
 Real environment variables override values from `.env`. The local `.env` file is ignored by Git and must not contain committed credentials. Hibernate always uses `validate`; Flyway is the only component allowed to change the schema.
 
@@ -39,6 +39,6 @@ Run its test suite with Docker available:
 
 The integration test starts PostgreSQL 17 with Testcontainers, applies Flyway migrations, and then validates the mapped entities with Hibernate.
 
-The example port matches the port published for this service by Docker Compose. To route a Dockerized Gateway to this locally running service, set `IDENTITY_SERVICE_URL=http://host.docker.internal:8081` for the Gateway container.
+The example port matches the port published for this service by Docker Compose. To route a Dockerized Gateway to this locally running service, set `IDENTITY_SERVICE_URL=http://host.docker.internal:8081` for the Gateway container. The browser still calls `/api/identity/**`, so the default `COOKIE_PATH=/api/identity/auth` also applies to this hybrid mode.
 
 See the [root README](../README.md#hybrid-development) for the complete mixed startup flow.

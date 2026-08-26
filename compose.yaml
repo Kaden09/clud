@@ -64,8 +64,8 @@ services:
       kafka:
         condition: service_healthy
     healthcheck:
-      # Identity использует context-path /api, поэтому он входит во внутренний healthcheck URL.
-      test: ["CMD", "curl", "-f", "http://localhost:8080/api/actuator/health/readiness"]
+      # Healthcheck обращается к Identity напрямую, без публичного префикса Gateway.
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness"]
       interval: 10s
       timeout: 5s
       retries: 6

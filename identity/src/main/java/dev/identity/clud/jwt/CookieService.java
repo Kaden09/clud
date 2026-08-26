@@ -24,7 +24,7 @@ public class CookieService {
     @Value("${app.cookie.same-site:Lax}")
     private String sameSite;
 
-    @Value("${app.cookie.path:/api/auth}")
+    @Value("${app.cookie.path:/api/identity/auth}")
     private String path;
 
     public static final String REFRESH_TOKEN_COOKIE = "refresh_token";

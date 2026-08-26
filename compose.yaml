@@ -50,13 +50,12 @@ services:
       IDENTITY_DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
       IDENTITY_DATABASE_USERNAME: ${POSTGRES_USER}
       IDENTITY_DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
-      IDENTITY_DDL_AUTO: ${IDENTITY_DDL_AUTO}
       IDENTITY_SHOW_SQL: ${IDENTITY_SHOW_SQL}
       JWT_SECRET: ${JWT_SECRET}
       JWT_ACCESS_TOKEN_EXPIRATION_MS: ${JWT_ACCESS_TOKEN_EXPIRATION_MS}
       JWT_REFRESH_TOKEN_EXPIRATION_MS: ${JWT_REFRESH_TOKEN_EXPIRATION_MS}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
       COOKIE_SECURE: ${COOKIE_SECURE}
-      COOKIE_HTTP_ONLY: ${COOKIE_HTTP_ONLY}
       COOKIE_SAME_SITE: ${COOKIE_SAME_SITE}
       COOKIE_PATH: ${COOKIE_PATH}
     depends_on:
@@ -65,7 +64,8 @@ services:
       kafka:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness"]
+      # Identity использует context-path /api, поэтому он входит во внутренний healthcheck URL.
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/actuator/health/readiness"]
       interval: 10s
       timeout: 5s
       retries: 6

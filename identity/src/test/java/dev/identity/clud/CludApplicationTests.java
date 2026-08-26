@@ -8,13 +8,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 		"spring.datasource.username=test",
 		"spring.datasource.password=test",
 		"spring.datasource.driver-class-name=org.testcontainers.jdbc.ContainerDatabaseDriver",
-		"spring.jpa.hibernate.ddl-auto=create-drop",
-		"jwt.secret=f05493d1eebc788c946effb11957855922b54cfe42c2dd200c320578b2e39838854b49e5abbd13865bf475c92492376974bc63e1fbfc5690efdb664d25b28b5d"
+		"spring.jpa.hibernate.ddl-auto=validate",
+		"jwt.secret=Y2x1ZC1kZXZlbG9wbWVudC1qd3Qtc2VjcmV0LTMyYiE="
 })
 class CludApplicationTests {
 
+	// Этот запуск подтверждает реальную последовательность Flyway -> Hibernate validate.
 	@Test
-	void contextLoads() {
+	void contextLoadsWithFlywayMigrations() {
 	}
 
 }

@@ -15,8 +15,8 @@ import java.util.Optional;
 @Service
 public class CookieService {
 
-    @Value("${app.cookie.http-only:true}")
-    private boolean httpOnly;
+    // Refresh-токен всегда HttpOnly: это ограничение безопасности, а не настройка окружения.
+    private static final boolean HTTP_ONLY = true;
 
     @Value("${app.cookie.secure:false}")
     private boolean secure;
@@ -24,11 +24,14 @@ public class CookieService {
     @Value("${app.cookie.same-site:Lax}")
     private String sameSite;
 
+    @Value("${app.cookie.path:/api/auth}")
+    private String path;
+
     public static final String REFRESH_TOKEN_COOKIE = "refresh_token";
 
-    public void addTokenCookie(HttpServletResponse response, String name, String value, long maxAgeMs, String path) {
+    public void addTokenCookie(HttpServletResponse response, String name, String value, long maxAgeMs) {
         ResponseCookie cookie = ResponseCookie.from(name, value)
-                .httpOnly(httpOnly)
+                .httpOnly(HTTP_ONLY)
                 .secure(secure)
                 .sameSite(sameSite)
                 .path(path)
@@ -38,9 +41,9 @@ public class CookieService {
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
-    public void deleteCookie(HttpServletResponse response, String name, String path) {
+    public void deleteCookie(HttpServletResponse response, String name) {
         ResponseCookie cookie = ResponseCookie.from(name, "")
-                .httpOnly(httpOnly)
+                .httpOnly(HTTP_ONLY)
                 .secure(secure)
                 .sameSite(sameSite)
                 .path(path)

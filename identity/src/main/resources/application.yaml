@@ -1,7 +1,4 @@
 spring:
-  flyway:
-    enabled: true
-    baseline-on-migrate: true
   application:
     name: identity
   datasource:
@@ -9,12 +6,20 @@ spring:
     username: ${IDENTITY_DATABASE_USERNAME:clud}
     password: ${IDENTITY_DATABASE_PASSWORD:clud}
     driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: true
+    # Отдельная схема не позволяет миграциям Identity пересекаться с другими сервисами общей БД.
+    create-schemas: true
+    default-schema: identity_service
+    schemas: identity_service
   jpa:
     open-in-view: false
     show-sql: ${IDENTITY_SHOW_SQL:false}
     hibernate:
-#      ddl-auto: update
-      ddl-auto: ${IDENTITY_DDL_AUTO:validate}
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: identity_service
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
@@ -41,9 +46,8 @@ app:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
   cookie:
     secure: ${COOKIE_SECURE:false}
-    http-only: ${COOKIE_HTTP_ONLY:true}
     same-site: ${COOKIE_SAME_SITE:Lax}
-    path: ${COOKIE_PATH:/}
+    path: ${COOKIE_PATH:/api/auth}
 
 server:
   servlet:

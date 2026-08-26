@@ -78,7 +78,12 @@ public class ErrorHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception e, WebRequest request) {
         log.error("Unexpected error on {}: {}", getPath(request), e.getMessage(), e);
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", e.getMessage(), request);
+        return buildResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Internal Server Error",
+                "An unexpected error occurred",
+                request
+        );
     }
 
     private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String error, String message, WebRequest request) {

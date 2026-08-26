@@ -135,7 +135,7 @@ public class AuthService {
                 session.setRevoked(true);
                 refreshSessionRepository.save(session);
             });
-            cookieService.deleteCookie(response, CookieService.REFRESH_TOKEN_COOKIE, "/auth");
+            cookieService.deleteCookie(response, CookieService.REFRESH_TOKEN_COOKIE);
         });
         log.info("User logged out");
     }
@@ -159,8 +159,7 @@ public class AuthService {
                 response,
                 CookieService.REFRESH_TOKEN_COOKIE,
                 refreshToken,
-                jwtProperties.getRefreshTokenExpiration(),
-                "/auth"
+                jwtProperties.getRefreshTokenExpiration()
         );
     }
 

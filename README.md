@@ -177,6 +177,18 @@ Kafka has separate addresses:
 Gateway removes the first two path segments before forwarding a request. It
 also preserves an incoming `X-Request-ID` or generates one when absent.
 
+## File metadata service
+
+The File Service persists files and folders in the `file_service` PostgreSQL
+schema. It supports directory browsing, rename, move, recursive trash, restore,
+and versioned Kafka lifecycle events. File bytes remain owned by the future
+Storage Service.
+
+Business requests require an `X-User-ID` UUID. This is a temporary development
+contract until Identity authentication allows Gateway to supply a trusted user
+header. See [the File Service documentation](file/README.md) for endpoints,
+examples, persistence rules, and event payloads.
+
 ## Testing
 
 Each service has an independent Maven Wrapper:

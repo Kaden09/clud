@@ -1,11 +1,30 @@
 spring:
   application:
     name: file
+  datasource:
+    url: ${FILE_DATABASE_URL:jdbc:postgresql://localhost:5432/clud}
+    username: ${FILE_DATABASE_USERNAME:clud}
+    password: ${FILE_DATABASE_PASSWORD:clud}
+  flyway:
+    create-schemas: true
+    default-schema: file_service
+    schemas: file_service
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: file_service
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
-    consumer:
-      group-id: ${spring.application.name}
-      auto-offset-reset: earliest
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+clud:
+  file:
+    events-topic: ${FILE_EVENTS_TOPIC:file.events.v1}
 
 management:
   endpoints:
@@ -16,3 +35,6 @@ management:
     health:
       probes:
         enabled: true
+  health:
+    readinessstate:
+      enabled: true

@@ -65,7 +65,13 @@ services:
       - "${FILE_PORT}:8080"
     environment:
       KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      FILE_DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      FILE_DATABASE_USERNAME: ${POSTGRES_USER}
+      FILE_DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      FILE_EVENTS_TOPIC: ${FILE_EVENTS_TOPIC}
     depends_on:
+      postgres:
+        condition: service_healthy
       kafka:
         condition: service_healthy
     healthcheck:

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.context.ApplicationEventPublisher;
@@ -18,21 +19,16 @@ import dev.file.clud.error.NodeNotFoundException;
 import dev.file.clud.event.FileLifecycleEvent;
 import dev.file.clud.node.dto.request.CreateFileRequest;
 import dev.file.clud.node.dto.request.CreateFolderRequest;
-import dev.file.clud.node.dto.request.MoveNodeRequest;
 import dev.file.clud.node.dto.request.RenameNodeRequest;
 import dev.file.clud.node.entity.FileNode;
 import dev.file.clud.node.repository.FileNodeRepository;
 
 @Service
+@RequiredArgsConstructor
 public class FileNodeService {
 
 	private final FileNodeRepository repository;
 	private final ApplicationEventPublisher eventPublisher;
-
-	public FileNodeService(FileNodeRepository repository, ApplicationEventPublisher eventPublisher) {
-		this.repository = repository;
-		this.eventPublisher = eventPublisher;
-	}
 
 	@Transactional
 	public FileNode createFolder(UUID ownerId, CreateFolderRequest request) {
@@ -90,17 +86,17 @@ public class FileNodeService {
 	}
 
 	@Transactional
-	public FileNode move(UUID ownerId, UUID nodeId, MoveNodeRequest request) {
+	public FileNode move(UUID ownerId, UUID nodeId, UUID targetParentId) {
 		FileNode node = getActive(ownerId, nodeId);
-		FileNode destination = resolveActiveFolder(ownerId, request.parentId());
+		FileNode destination = resolveActiveFolder(ownerId, targetParentId);
 		UUID currentParentId = node.getParent() == null ? null : node.getParent().getId();
-		if (Objects.equals(currentParentId, request.parentId())) {
+		if (Objects.equals(currentParentId, targetParentId)) {
 			return node;
 		}
 		if (node.isFolder()) {
 			ensureNotDescendant(node, destination);
 		}
-		ensureNameAvailable(ownerId, request.parentId(), node.getName());
+		ensureNameAvailable(ownerId, targetParentId, node.getName());
 		node.moveTo(destination);
 		return node;
 	}

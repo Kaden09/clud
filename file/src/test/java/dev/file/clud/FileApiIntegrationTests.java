@@ -115,9 +115,9 @@ class FileApiIntegrationTests {
 
 		HttpResponse<String> response = request(
 				"POST",
-				"/nodes/" + parentId + "/move",
+				"/nodes/" + parentId + "/move?targetParentId=" + childId,
 				ownerId,
-				"{\"parentId\":\"" + childId + "\"}");
+				null);
 
 		assertThat(response.statusCode()).isEqualTo(400);
 		assertThat(response.body()).contains("INVALID_NODE_OPERATION");

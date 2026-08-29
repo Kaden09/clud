@@ -3,10 +3,13 @@ package dev.file.clud.node.controller;
 import java.net.URI;
 import java.util.UUID;
 
+import dev.file.clud.node.mapper.NodeMapper;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
@@ -24,30 +27,30 @@ import org.springframework.validation.annotation.Validated;
 
 import dev.file.clud.node.dto.request.CreateFileRequest;
 import dev.file.clud.node.dto.request.CreateFolderRequest;
-import dev.file.clud.node.dto.request.MoveNodeRequest;
 import dev.file.clud.node.dto.request.RenameNodeRequest;
 import dev.file.clud.node.dto.response.NodeResponse;
 import dev.file.clud.node.dto.response.PageResponse;
 import dev.file.clud.node.service.FileNodeService;
 
+@Slf4j
+@Validated
 @RestController
 @RequestMapping
-@Validated
+@RequiredArgsConstructor
 public class FileNodeController {
 
 	private static final String USER_ID_HEADER = "X-User-ID";
 
 	private final FileNodeService service;
-
-	public FileNodeController(FileNodeService service) {
-		this.service = service;
-	}
+	private final NodeMapper mapper;
 
 	@PostMapping("/folders")
 	ResponseEntity<NodeResponse> createFolder(
 			@RequestHeader(USER_ID_HEADER) UUID ownerId,
 			@Valid @RequestBody CreateFolderRequest request) {
-		NodeResponse response = NodeResponse.from(service.createFolder(ownerId, request));
+		log.info("Creating folder for ownerId={}, name={}", ownerId, request.name());
+
+		NodeResponse response = mapper.toResponse(service.createFolder(ownerId, request));
 		return ResponseEntity.created(URI.create("/nodes/" + response.id())).body(response);
 	}
 
@@ -55,7 +58,9 @@ public class FileNodeController {
 	ResponseEntity<NodeResponse> createFile(
 			@RequestHeader(USER_ID_HEADER) UUID ownerId,
 			@Valid @RequestBody CreateFileRequest request) {
-		NodeResponse response = NodeResponse.from(service.createFile(ownerId, request));
+		log.info("Creating file for ownerId={}, name={}", ownerId, request.name());
+
+		NodeResponse response = mapper.toResponse(service.createFile(ownerId, request));
 		return ResponseEntity.created(URI.create("/nodes/" + response.id())).body(response);
 	}
 
@@ -63,7 +68,9 @@ public class FileNodeController {
 	NodeResponse getNode(
 			@RequestHeader(USER_ID_HEADER) UUID ownerId,
 			@PathVariable UUID nodeId) {
-		return NodeResponse.from(service.get(ownerId, nodeId));
+		log.debug("Fetching node: nodeId={}, ownerId={}", nodeId, ownerId);
+
+		return mapper.toResponse(service.get(ownerId, nodeId));
 	}
 
 	@GetMapping("/nodes")
@@ -72,7 +79,9 @@ public class FileNodeController {
 			@RequestParam(required = false) UUID parentId,
 			@RequestParam(defaultValue = "0") @Min(0) int page,
 			@RequestParam(defaultValue = "50") @Min(1) @Max(100) int size) {
-		return PageResponse.fromNodes(service.listChildren(
+		log.debug("Listing children: ownerId={}, parentId={}, page={}, size={}", ownerId, parentId, page, size);
+
+		return mapper.toPageResponse(service.listChildren(
 				ownerId,
 				parentId,
 				PageRequest.of(page, size, Sort.by("type", "name"))));
@@ -83,21 +92,27 @@ public class FileNodeController {
 			@RequestHeader(USER_ID_HEADER) UUID ownerId,
 			@PathVariable UUID nodeId,
 			@Valid @RequestBody RenameNodeRequest request) {
-		return NodeResponse.from(service.rename(ownerId, nodeId, request));
+		log.info("Renaming node: nodeId={}, ownerId={}, newName={}", nodeId, ownerId, request.name());
+
+		return mapper.toResponse(service.rename(ownerId, nodeId, request));
 	}
 
 	@PostMapping("/nodes/{nodeId}/move")
 	NodeResponse moveNode(
 			@RequestHeader(USER_ID_HEADER) UUID ownerId,
 			@PathVariable UUID nodeId,
-			@RequestBody MoveNodeRequest request) {
-		return NodeResponse.from(service.move(ownerId, nodeId, request));
+			@RequestParam UUID targetParentId) {
+		log.info("Moving node: nodeId={}, ownerId={}, parentId={}", nodeId, ownerId, targetParentId);
+
+		return mapper.toResponse(service.move(ownerId, nodeId, targetParentId));
 	}
 
 	@DeleteMapping("/nodes/{nodeId}")
 	ResponseEntity<Void> moveToTrash(
 			@RequestHeader(USER_ID_HEADER) UUID ownerId,
 			@PathVariable UUID nodeId) {
+		log.info("Moving to trash: nodeId={}, ownerId={}", nodeId, ownerId);
+
 		service.moveToTrash(ownerId, nodeId);
 		return ResponseEntity.noContent().build();
 	}
@@ -107,13 +122,17 @@ public class FileNodeController {
 			@RequestHeader(USER_ID_HEADER) UUID ownerId,
 			@RequestParam(defaultValue = "0") @Min(0) int page,
 			@RequestParam(defaultValue = "50") @Min(1) @Max(100) int size) {
-		return PageResponse.fromNodes(service.listTrash(ownerId, PageRequest.of(page, size)));
+		log.debug("Listing trash: ownerId={}, page={}, size={}", ownerId, page, size);
+
+		return mapper.toPageResponse(service.listTrash(ownerId, PageRequest.of(page, size)));
 	}
 
 	@PostMapping("/trash/{nodeId}/restore")
 	NodeResponse restoreNode(
 			@RequestHeader(USER_ID_HEADER) UUID ownerId,
 			@PathVariable UUID nodeId) {
-		return NodeResponse.from(service.restore(ownerId, nodeId));
+		log.info("Restoring node from trash: nodeId={}, ownerId={}", nodeId, ownerId);
+
+		return mapper.toResponse(service.restore(ownerId, nodeId));
 	}
 }

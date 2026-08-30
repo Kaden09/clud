@@ -14,7 +14,6 @@ public class HttpClientConfiguration {
 
 	@Bean
 	RestClient fileServiceRestClient(
-			RestClient.Builder builder,
 			@Value("${clud.sharing.file-service-url}") String baseUrl,
 			@Value("${clud.sharing.http.connect-timeout:2s}") Duration connectTimeout,
 			@Value("${clud.sharing.http.read-timeout:5s}") Duration readTimeout) {
@@ -24,7 +23,7 @@ public class HttpClientConfiguration {
 		JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
 		requestFactory.setReadTimeout(readTimeout);
 
-		return builder
+		return RestClient.builder()
 				.baseUrl(baseUrl)
 				.requestFactory(requestFactory)
 				.build();

@@ -41,8 +41,7 @@ public class ShareLinkService {
 
 		return transactionTemplate.execute(status -> {
 			Instant now = Instant.now();
-			repository.findByOwnerIdAndFileIdAndRevokedAtIsNull(ownerId, request.fileId())
-					.ifPresent(existing -> existing.revoke(now));
+			repository.revokeAllActiveByOwnerIdAndFileId(ownerId, request.fileId(), now);
 
 			ShareLink link = repository.saveAndFlush(ShareLink.create(
 					ownerId,

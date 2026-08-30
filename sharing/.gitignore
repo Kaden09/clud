@@ -1,15 +1,17 @@
 # Maven
 target/
 
-# IDE
+# IntelliJ IDEA
 .idea/
-.vscode/
-.classpath
-.project
-.settings/
 *.iml
 
-# Local files
-.env
+# Java
+*.class
+
+# Logs
 *.log
-.DS_Store
+
+# Environment variables
+.env
+.env.*
+!.env.example

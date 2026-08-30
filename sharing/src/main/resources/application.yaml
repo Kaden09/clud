@@ -1,11 +1,53 @@
+server:
+  port: ${SERVER_PORT:8084}
+
 spring:
   application:
     name: sharing
+  datasource:
+    url: ${SHARING_DATABASE_URL:jdbc:postgresql://localhost:5432/clud}
+    username: ${SHARING_DATABASE_USERNAME:clud}
+    password: ${SHARING_DATABASE_PASSWORD:clud}
+  flyway:
+    create-schemas: true
+    default-schema: sharing_service
+    schemas: sharing_service
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: sharing_service
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
       group-id: ${spring.application.name}
       auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: dev.sharing.clud.event.FileLifecycleEvent
+        spring.json.trusted.packages: dev.sharing.clud.event
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+clud:
+  sharing:
+    file-service-url: ${FILE_SERVICE_URL:http://localhost:8082}
+    storage-service-url: ${STORAGE_SERVICE_URL:http://localhost:8083}
+    public-base-url: ${SHARING_PUBLIC_BASE_URL:http://localhost:8084/public}
+    http:
+      connect-timeout: ${SHARING_HTTP_CONNECT_TIMEOUT:2s}
+      read-timeout: ${SHARING_HTTP_READ_TIMEOUT:5s}
+    file-events-topic: ${FILE_EVENTS_TOPIC:file.events.v1}
+    events-topic: ${SHARING_EVENTS_TOPIC:sharing.events.v1}
+
+springdoc:
+  swagger-ui:
+    path: /docs
 
 management:
   endpoints:
@@ -16,3 +58,6 @@ management:
     health:
       probes:
         enabled: true
+  health:
+    readinessstate:
+      enabled: true

@@ -20,8 +20,15 @@ import java.util.Map;
 @Slf4j
 @RestControllerAdvice
 public class ApiExceptionHandler {
+	@ExceptionHandler(NotFoundException.class)
+	ResponseEntity<ApiError> handleNotFound(NotFoundException exception, HttpServletRequest request) {
+		log.warn("Bucket not found: uri={}, message={}", request.getRequestURI(), exception.getMessage());
+
+		return error(HttpStatus.NOT_FOUND, "BUCKET_NOT_FOUND", exception.getMessage(), request, Map.of());
+	}
+
 	@ExceptionHandler(StorageException.class)
-	public ResponseEntity<ApiError> handleStorageException(StorageException exception, HttpServletRequest request) {
+	public ResponseEntity<ApiError> handleStorage(StorageException exception, HttpServletRequest request) {
 		Throwable cause = exception.getCause();
 
 		if (cause != null) {

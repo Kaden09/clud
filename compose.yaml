@@ -88,8 +88,11 @@ services:
     ports:
       - "${STORAGE_PORT}:8080"
     environment:
+      MINIO_URL: ${MINIO_URL}
       KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
     depends_on:
+      minio:
+        condition: service_healthy
       kafka:
         condition: service_healthy
     healthcheck:
@@ -152,6 +155,7 @@ services:
     container_name: clud-minio
     command: server /data --console-address ":9001"
     environment:
+      MINIO_URL: ${MINIO_URL}
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     ports:

@@ -14,11 +14,7 @@ public class SecurityErrorResponseWriter {
         response.setStatus(status);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         String body = "{\"timestamp\":\"%s\",\"status\":%d,\"code\":\"%s\",\"message\":\"%s\"}"
-                .formatted(Instant.now(), status, escape(code), escape(message));
+                .formatted(Instant.now(), status, code, message);
         response.getWriter().write(body);
-    }
-
-    private String escape(String value) {
-        return value.replace("\\", "\\\\").replace("\\"", "\\\\"");
     }
 }

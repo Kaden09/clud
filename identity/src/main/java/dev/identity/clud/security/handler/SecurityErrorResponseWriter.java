@@ -8,7 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 
 @Component
-public class SecurityErrorResponseWriter {
+public class SecurityApiErrorWriter {
 
     public void write(HttpServletResponse response, int status, String code, String message) throws IOException {
         response.setStatus(status);

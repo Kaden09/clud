@@ -3,7 +3,7 @@ package dev.identity.clud.error;
 import java.time.Instant;
 import java.util.Map;
 
-public record ErrorResponse(
+public record ApiError(
         Instant timestamp,
         int status,
         String code,

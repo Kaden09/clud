@@ -9,19 +9,21 @@ import java.util.Locale;
 import java.util.UUID;
 
 import dev.identity.clud.event.UserRegisteredEvent;
+import dev.identity.clud.security.principal.AuthenticatedUser;
+import dev.identity.clud.security.principal.IdentityUserDetailsService;
 import dev.identity.clud.error.EmailAlreadyExistsException;
 import dev.identity.clud.error.InvalidTokenException;
 import dev.identity.clud.auth.dto.AccessTokenResponse;
-import dev.identity.clud.session.CookieService;
+import dev.identity.clud.session.RefreshCookieService;
 import dev.identity.clud.security.jwt.JwtProperties;
-import dev.identity.clud.security.jwt.JwtService;
+import dev.identity.clud.security.jwt.JwtTokenService;
 import dev.identity.clud.session.RefreshSession;
 import dev.identity.clud.session.RefreshSessionRepository;
 import dev.identity.clud.session.RefreshSessionRevocationService;
 import dev.identity.clud.user.User;
 import dev.identity.clud.user.UserRepository;
-import dev.identity.clud.auth.dto.LoginRequestDto;
-import dev.identity.clud.auth.dto.RegisterRequestDto;
+import dev.identity.clud.auth.dto.LoginRequest;
+import dev.identity.clud.auth.dto.RegisterRequest;
 import dev.identity.clud.user.dto.UserResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -43,15 +45,15 @@ public class AuthService {
     private final RefreshSessionRepository refreshSessionRepository;
     private final RefreshSessionRevocationService revocationService;
     private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
-    private final CookieService cookieService;
+    private final JwtTokenService jwtService;
+    private final RefreshCookieService cookieService;
     private final AuthenticationManager authenticationManager;
-    private final CustomUserDetailsService userDetailsService;
+    private final IdentityUserDetailsService userDetailsService;
     private final JwtProperties jwtProperties;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
-    public UserResponse register(RegisterRequestDto request) {
+    public UserResponse register(RegisterRequest request) {
         String email = normalizeEmail(request.email());
         if (userRepository.existsByEmail(email)) {
             throw new EmailAlreadyExistsException("Email is already registered");
@@ -73,12 +75,12 @@ public class AuthService {
     }
 
     @Transactional
-    public AccessTokenResponse login(LoginRequestDto request, HttpServletResponse response) {
+    public AccessTokenResponse login(LoginRequest request, HttpServletResponse response) {
         var authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         normalizeEmail(request.email()),
                         request.password()));
-        CustomUserDetails user = (CustomUserDetails) authentication.getPrincipal();
+        AuthenticatedUser user = (AuthenticatedUser) authentication.getPrincipal();
         createRefreshSession(response, user);
         return new AccessTokenResponse(jwtService.generateAccessToken(user));
     }
@@ -86,11 +88,11 @@ public class AuthService {
     @Transactional
     public AccessTokenResponse refresh(HttpServletRequest request, HttpServletResponse response) {
         String refreshToken = cookieService
-                .getCookieValue(request, CookieService.REFRESH_TOKEN_COOKIE)
+                .getCookieValue(request, RefreshCookieService.REFRESH_TOKEN_COOKIE)
                 .orElseThrow(() -> new InvalidTokenException("Refresh token is required"));
 
         UUID userId = jwtService.extractUserId(refreshToken);
-        CustomUserDetails user;
+        AuthenticatedUser user;
         try {
             user = userDetailsService.loadUserById(userId);
         }
@@ -120,13 +122,13 @@ public class AuthService {
 
     @Transactional
     public void logout(HttpServletRequest request, HttpServletResponse response) {
-        cookieService.getCookieValue(request, CookieService.REFRESH_TOKEN_COOKIE)
+        cookieService.getCookieValue(request, RefreshCookieService.REFRESH_TOKEN_COOKIE)
                 .flatMap(token -> refreshSessionRepository.findByTokenHash(hashToken(token)))
                 .ifPresent(session -> session.setRevoked(true));
-        cookieService.deleteCookie(response, CookieService.REFRESH_TOKEN_COOKIE);
+        cookieService.deleteCookie(response, RefreshCookieService.REFRESH_TOKEN_COOKIE);
     }
 
-    private void createRefreshSession(HttpServletResponse response, CustomUserDetails user) {
+    private void createRefreshSession(HttpServletResponse response, AuthenticatedUser user) {
         String token = jwtService.generateRefreshToken(user);
         RefreshSession session = RefreshSession.builder()
                 .userId(user.getId())
@@ -137,7 +139,7 @@ public class AuthService {
         refreshSessionRepository.save(session);
         cookieService.addTokenCookie(
                 response,
-                CookieService.REFRESH_TOKEN_COOKIE,
+                RefreshCookieService.REFRESH_TOKEN_COOKIE,
                 token,
                 jwtProperties.getRefreshTokenExpiration());
     }

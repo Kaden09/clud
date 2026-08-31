@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class CustomUserDetailsService implements UserDetailsService {
+public class IdentityUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
 
@@ -26,14 +26,14 @@ public class CustomUserDetailsService implements UserDetailsService {
         }
         String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
         return userRepository.findByEmail(normalizedEmail)
-                .map(CustomUserDetails::from)
+                .map(AuthenticatedUser::from)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }
 
     @Transactional(readOnly = true)
-    public CustomUserDetails loadUserById(UUID userId) {
+    public AuthenticatedUser loadUserById(UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-        return CustomUserDetails.from(user);
+        return AuthenticatedUser.from(user);
     }
 }

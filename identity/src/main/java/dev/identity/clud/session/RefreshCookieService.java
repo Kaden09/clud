@@ -13,7 +13,7 @@ import java.util.Arrays;
 import java.util.Optional;
 
 @Service
-public class CookieService {
+public class RefreshCookieService {
 
     // Refresh-токен всегда HttpOnly: это ограничение безопасности, а не настройка окружения.
     private static final boolean HTTP_ONLY = true;

@@ -2,19 +2,20 @@ package dev.identity.clud.jwt;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.identity.clud.session.RefreshCookieService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
 
-class CookieServiceTest {
+class RefreshCookieServiceTest {
 
-    private CookieService cookieService;
+    private RefreshCookieService cookieService;
 
     @BeforeEach
     void setUp() {
-        cookieService = new CookieService();
+        cookieService = new RefreshCookieService();
         ReflectionTestUtils.setField(cookieService, "secure", false);
         ReflectionTestUtils.setField(cookieService, "sameSite", "Lax");
         ReflectionTestUtils.setField(cookieService, "path", "/api/identity/auth");
@@ -24,7 +25,7 @@ class CookieServiceTest {
     void usesPublicGatewayPathWhenAddingCookie() {
         MockHttpServletResponse response = new MockHttpServletResponse();
 
-        cookieService.addTokenCookie(response, CookieService.REFRESH_TOKEN_COOKIE, "token", 60_000);
+        cookieService.addTokenCookie(response, RefreshCookieService.REFRESH_TOKEN_COOKIE, "token", 60_000);
 
         assertThat(response.getHeader(HttpHeaders.SET_COOKIE))
                 .contains("Path=/api/identity/auth", "HttpOnly");
@@ -34,7 +35,7 @@ class CookieServiceTest {
     void usesSamePublicGatewayPathWhenDeletingCookie() {
         MockHttpServletResponse response = new MockHttpServletResponse();
 
-        cookieService.deleteCookie(response, CookieService.REFRESH_TOKEN_COOKIE);
+        cookieService.deleteCookie(response, RefreshCookieService.REFRESH_TOKEN_COOKIE);
 
         assertThat(response.getHeader(HttpHeaders.SET_COOKIE))
                 .contains("Path=/api/identity/auth", "Max-Age=0", "HttpOnly");

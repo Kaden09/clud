@@ -7,7 +7,7 @@ import java.util.function.Function;
 import javax.crypto.SecretKey;
 
 import dev.identity.clud.error.InvalidTokenException;
-import dev.identity.clud.security.principal.CustomUserDetails;
+import dev.identity.clud.security.principal.AuthenticatedUser;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -17,25 +17,25 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Service;
 
 @Service
-public class JwtService {
+public class JwtTokenService {
 
     private final JwtProperties properties;
     private final SecretKey signingKey;
 
-    public JwtService(JwtProperties properties) {
+    public JwtTokenService(JwtProperties properties) {
         this.properties = properties;
         this.signingKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(properties.getSecret()));
     }
 
-    public String generateAccessToken(CustomUserDetails user) {
+    public String generateAccessToken(AuthenticatedUser user) {
         return buildToken(user, properties.getAccessTokenExpiration(), "access", null);
     }
 
-    public String generateRefreshToken(CustomUserDetails user) {
+    public String generateRefreshToken(AuthenticatedUser user) {
         return buildToken(user, properties.getRefreshTokenExpiration(), "refresh", UUID.randomUUID().toString());
     }
 
-    public boolean isTokenValid(String token, CustomUserDetails user, String expectedType) {
+    public boolean isTokenValid(String token, AuthenticatedUser user, String expectedType) {
         Claims claims = extractAllClaims(token);
         return user.getId().toString().equals(claims.getSubject())
                 && expectedType.equals(claims.get("type", String.class))
@@ -50,7 +50,7 @@ public class JwtService {
         return extractClaim(token, Claims::getId);
     }
 
-    private String buildToken(CustomUserDetails user, long expiration, String type, String jti) {
+    private String buildToken(AuthenticatedUser user, long expiration, String type, String jti) {
         var builder = Jwts.builder()
                 .subject(user.getId().toString())
                 .claim("email", user.getEmail())

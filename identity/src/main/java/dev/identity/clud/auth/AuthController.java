@@ -1,8 +1,8 @@
 package dev.identity.clud.auth;
 
 import dev.identity.clud.auth.dto.AccessTokenResponse;
-import dev.identity.clud.auth.dto.LoginRequestDto;
-import dev.identity.clud.auth.dto.RegisterRequestDto;
+import dev.identity.clud.auth.dto.LoginRequest;
+import dev.identity.clud.auth.dto.RegisterRequest;
 import dev.identity.clud.user.dto.UserResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -23,13 +23,13 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequestDto request) {
+    public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
     }
 
     @PostMapping("/login")
     public AccessTokenResponse login(
-            @Valid @RequestBody LoginRequestDto request,
+            @Valid @RequestBody LoginRequest request,
             HttpServletResponse response) {
         return authService.login(request, response);
     }

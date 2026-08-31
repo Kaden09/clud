@@ -3,9 +3,9 @@ package dev.identity.clud.security.jwt;
 import java.io.IOException;
 
 import dev.identity.clud.error.InvalidTokenException;
-import dev.identity.clud.security.principal.CustomUserDetails;
-import dev.identity.clud.security.principal.CustomUserDetailsService;
-import dev.identity.clud.security.handler.SecurityErrorResponseWriter;
+import dev.identity.clud.security.principal.AuthenticatedUser;
+import dev.identity.clud.security.principal.IdentityUserDetailsService;
+import dev.identity.clud.security.handler.SecurityApiErrorWriter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,9 +23,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtService jwtService;
-    private final CustomUserDetailsService userDetailsService;
-    private final SecurityErrorResponseWriter errorWriter;
+    private final JwtTokenService jwtService;
+    private final IdentityUserDetailsService userDetailsService;
+    private final SecurityApiErrorWriter errorWriter;
 
     @Override
     protected void doFilterInternal(
@@ -42,7 +42,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = authorization.substring(7);
             var userId = jwtService.extractUserId(token);
             if (SecurityContextHolder.getContext().getAuthentication() == null) {
-                CustomUserDetails user = userDetailsService.loadUserById(userId);
+                AuthenticatedUser user = userDetailsService.loadUserById(userId);
                 if (!jwtService.isTokenValid(token, user, "access")
                         || !user.isEnabled()
                         || !user.isAccountNonLocked()) {

@@ -13,7 +13,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 @Getter
 @RequiredArgsConstructor
-public class CustomUserDetails implements UserDetails {
+public class AuthenticatedUser implements UserDetails {
 
     private final UUID id;
     private final String email;
@@ -23,8 +23,8 @@ public class CustomUserDetails implements UserDetails {
     private final Instant createdAt;
     private final Instant updatedAt;
 
-    public static CustomUserDetails from(User user) {
-        return new CustomUserDetails(
+    public static AuthenticatedUser from(User user) {
+        return new AuthenticatedUser(
                 user.getId(),
                 user.getEmail(),
                 user.getPassword(),

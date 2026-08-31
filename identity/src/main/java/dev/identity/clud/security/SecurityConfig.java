@@ -3,6 +3,9 @@ package dev.identity.clud.security;
 import java.util.List;
 
 import dev.identity.clud.security.jwt.JwtAuthenticationFilter;
+import dev.identity.clud.security.handler.RestAccessDeniedHandler;
+import dev.identity.clud.security.handler.RestAuthenticationEntryPoint;
+import dev.identity.clud.security.principal.IdentityUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,7 +28,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final CustomUserDetailsService userDetailsService;
+    private final IdentityUserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
     private final CorsProperties corsProperties;
     private final RestAuthenticationEntryPoint authenticationEntryPoint;

@@ -17,10 +17,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @Slf4j
 @RestControllerAdvice
-public class ErrorHandler {
+public class ApiExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    ResponseEntity<ErrorResponse> handleValidation(
+    ResponseEntity<ApiError> handleValidation(
             MethodArgumentNotValidException exception,
             HttpServletRequest request) {
         Map<String, String> errors = new LinkedHashMap<>();
@@ -30,39 +30,39 @@ public class ErrorHandler {
     }
 
     @ExceptionHandler(EmailAlreadyExistsException.class)
-    ResponseEntity<ErrorResponse> handleConflict(
+    ResponseEntity<ApiError> handleConflict(
             EmailAlreadyExistsException exception,
             HttpServletRequest request) {
         return response(HttpStatus.CONFLICT, "EMAIL_ALREADY_EXISTS", exception.getMessage(), request, null);
     }
 
     @ExceptionHandler({InvalidTokenException.class, UsernameNotFoundException.class, BadCredentialsException.class})
-    ResponseEntity<ErrorResponse> handleAuthentication(
+    ResponseEntity<ApiError> handleAuthentication(
             RuntimeException exception,
             HttpServletRequest request) {
         return response(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_FAILED", "Authentication failed", request, null);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    ResponseEntity<ErrorResponse> handleMalformedBody(
+    ResponseEntity<ApiError> handleMalformedBody(
             HttpMessageNotReadableException exception,
             HttpServletRequest request) {
         return response(HttpStatus.BAD_REQUEST, "MALFORMED_REQUEST", "Malformed JSON or missing request body", request, null);
     }
 
     @ExceptionHandler(Exception.class)
-    ResponseEntity<ErrorResponse> handleUnexpected(Exception exception, HttpServletRequest request) {
+    ResponseEntity<ApiError> handleUnexpected(Exception exception, HttpServletRequest request) {
         log.error("Unexpected identity error on {}", request.getRequestURI(), exception);
         return response(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "An unexpected error occurred", request, null);
     }
 
-    private ResponseEntity<ErrorResponse> response(
+    private ResponseEntity<ApiError> response(
             HttpStatus status,
             String code,
             String message,
             HttpServletRequest request,
             Map<String, String> fieldErrors) {
-        return ResponseEntity.status(status).body(new ErrorResponse(
+        return ResponseEntity.status(status).body(new ApiError(
                 Instant.now(),
                 status.value(),
                 code,

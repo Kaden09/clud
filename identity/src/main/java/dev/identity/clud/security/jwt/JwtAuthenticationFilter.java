@@ -5,7 +5,7 @@ import java.io.IOException;
 import dev.identity.clud.error.InvalidTokenException;
 import dev.identity.clud.security.principal.AuthenticatedUser;
 import dev.identity.clud.security.principal.IdentityUserDetailsService;
-import dev.identity.clud.security.handler.SecurityApiErrorWriter;
+import dev.identity.clud.security.handler.SecurityErrorResponseWriter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,7 +25,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenService jwtService;
     private final IdentityUserDetailsService userDetailsService;
-    private final SecurityApiErrorWriter errorWriter;
+    private final SecurityErrorResponseWriter errorWriter;
 
     @Override
     protected void doFilterInternal(

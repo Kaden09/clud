@@ -1,8 +1,7 @@
-package dev.identity.clud.jwt;
+package dev.identity.clud.session;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import dev.identity.clud.session.RefreshCookieService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;

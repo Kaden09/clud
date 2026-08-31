@@ -1,4 +1,4 @@
-package dev.identity.clud;
+package dev.identity.clud.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;

@@ -80,19 +80,6 @@ class GatewayIntegrationTests {
 	}
 
 	@Test
-	void preservesIdentityCookiePublicPath() throws Exception {
-		HttpRequest request = HttpRequest.newBuilder(gatewayUri("/api/identity/auth/login"))
-				.POST(HttpRequest.BodyPublishers.noBody())
-				.build();
-
-		HttpResponse<String> response = send(request);
-
-		assertThat(response.statusCode()).isEqualTo(201);
-		assertThat(response.headers().firstValue("Set-Cookie"))
-				.hasValueSatisfying(cookie -> assertThat(cookie).contains("Path=/api/identity/auth"));
-	}
-
-	@Test
 	void preservesIncomingRequestId() throws Exception {
 		String requestId = "client-request-id";
 		HttpRequest request = HttpRequest.newBuilder(gatewayUri("/api/storage/objects/1"))
@@ -164,7 +151,7 @@ class GatewayIntegrationTests {
 
 	private static Stream<Arguments> routes() {
 		return Stream.of(
-				Arguments.of("/api/identity/auth/login", "/auth/login"),
+				Arguments.of("/api/identity/users/1", "/users/1"),
 				Arguments.of("/api/files/folders/1", "/folders/1"),
 				Arguments.of("/api/storage/objects/1", "/objects/1"),
 				Arguments.of("/api/sharing/links/1", "/links/1"));
@@ -195,12 +182,6 @@ class GatewayIntegrationTests {
 		exchange.getResponseHeaders().set("Content-Type", "text/plain");
 		exchange.getResponseHeaders().set("X-Upstream", "true");
 		exchange.getResponseHeaders().set(RequestIdFilter.REQUEST_ID_HEADER, "upstream-request-id");
-		if ("/auth/login".equals(exchange.getRequestURI().getPath())) {
-			// Cookie Path остаётся публичным: его проверяет браузер до маршрутизации Gateway.
-			exchange.getResponseHeaders().set(
-					"Set-Cookie",
-					"refresh_token=test; Path=/api/identity/auth; HttpOnly");
-		}
 		exchange.sendResponseHeaders(status, responseBytes.length);
 		exchange.getResponseBody().write(responseBytes);
 		exchange.close();

@@ -66,7 +66,7 @@ precedence over values from `.env`. All `.env` files are ignored by Git.
 | `MINIO_*` | MinIO credentials and API/console ports |
 | `KAFKA_BOOTSTRAP_SERVERS` | Kafka address supplied to application containers |
 | `KAFKA_NODE_ID`, `KAFKA_PROCESS_ROLES`, `KAFKA_PORT` | Local Kafka node configuration |
-| `IDENTITY_*`, `JWT_*`, `CORS_*`, `COOKIE_*` | Identity database, tokens, browser access, and cookie settings |
+| `SHARING_*` | Sharing database, public URL, timeouts, and event topic |
 
 Do not place production credentials in `.env.example`.
 
@@ -177,8 +177,30 @@ Kafka has separate addresses:
 
 Gateway removes the first two path segments before forwarding a request. It
 also preserves an incoming `X-Request-ID` or generates one when absent.
-Refresh cookies still use the public browser path `/api/identity/auth`, because
-cookie path matching happens before Gateway strips the service prefix.
+
+## File metadata service
+
+The File Service persists files and folders in the `file_service` PostgreSQL
+schema. It supports directory browsing, rename, move, recursive trash, restore,
+and versioned Kafka lifecycle events. File bytes remain owned by the future
+Storage Service.
+
+Business requests require an `X-User-ID` UUID. This is a temporary development
+contract until Identity authentication allows Gateway to supply a trusted user
+header. See [the File Service documentation](file/README.md) for endpoints,
+examples, persistence rules, and event payloads.
+
+## Public sharing service
+
+The Sharing Service persists one active public link per owner and file in the
+`sharing_service` PostgreSQL schema. It validates ownership and file state
+through File Service, supports optional expiration and revocation, publishes
+`FileShared`, and consumes `FileDeleted` to revoke links.
+
+Public download currently stops at a documented Storage Service boundary and
+returns `501 STORAGE_INTEGRATION_PENDING` after the token and file are fully
+validated. See [the Sharing Service documentation](sharing/README.md) for the
+API, token storage, events, and pending download contract.
 
 ## Testing
 

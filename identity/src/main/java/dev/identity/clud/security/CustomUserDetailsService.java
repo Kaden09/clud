@@ -1,19 +1,17 @@
 package dev.identity.clud.security;
 
+import java.util.Locale;
+import java.util.UUID;
 
 import dev.identity.clud.user.User;
 import dev.identity.clud.user.UserRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
-
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
@@ -22,32 +20,20 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     @Transactional(readOnly = true)
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        if (username == null || username.isBlank()) {
-            log.warn("Authentication attempt with empty username");
-            throw new UsernameNotFoundException("Username is empty");
+    public UserDetails loadUserByUsername(String email) {
+        if (email == null || email.isBlank()) {
+            throw new UsernameNotFoundException("User not found");
         }
-
-        String normalized = username.toLowerCase().trim();
-
-        User user;
-        if (isValidUuid(normalized)) {
-            user = userRepository.findById(UUID.fromString(normalized))
-                    .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
-        } else {
-            user = userRepository.findByEmail(normalized)
-                    .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
-        }
-
-        return CustomUserDetails.build(user);
+        String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
+        return userRepository.findByEmail(normalizedEmail)
+                .map(CustomUserDetails::from)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }
 
-    private boolean isValidUuid(String str) {
-        try {
-            UUID.fromString(str);
-            return true;
-        } catch (IllegalArgumentException e) {
-            return false;
-        }
+    @Transactional(readOnly = true)
+    public CustomUserDetails loadUserById(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        return CustomUserDetails.from(user);
     }
 }

@@ -1,16 +1,16 @@
 package dev.identity.clud.user.dto;
 
-
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import lombok.Data;
+import jakarta.validation.constraints.Size;
 
-@Data
-public class LoginRequestDto {
-    @NotBlank(message = "Email не может быть пустым")
-    @Email(message = "Некорректный формат email")
-    private String email;
+public record LoginRequestDto(
+        @NotBlank(message = "Email is required")
+        @Email(message = "Email must be valid")
+        @Size(max = 254, message = "Email must not exceed 254 characters")
+        String email,
 
-    @NotBlank(message = "Пароль не может быть пустым")
-    private String password;
+        @NotBlank(message = "Password is required")
+        @Size(max = 72, message = "Password must not exceed 72 characters")
+        String password) {
 }

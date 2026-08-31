@@ -1,3 +1,6 @@
+server:
+  port: ${SERVER_PORT:8081}
+
 spring:
   application:
     name: identity
@@ -5,10 +8,7 @@ spring:
     url: ${IDENTITY_DATABASE_URL:jdbc:postgresql://localhost:5432/clud}
     username: ${IDENTITY_DATABASE_USERNAME:clud}
     password: ${IDENTITY_DATABASE_PASSWORD:clud}
-    driver-class-name: org.postgresql.Driver
   flyway:
-    enabled: true
-    # Отдельная схема не позволяет миграциям Identity пересекаться с другими сервисами общей БД.
     create-schemas: true
     default-schema: identity_service
     schemas: identity_service
@@ -22,19 +22,9 @@ spring:
         default_schema: identity_service
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
-    consumer:
-      group-id: ${spring.application.name}
-      auto-offset-reset: earliest
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
-  endpoint:
-    health:
-      probes:
-        enabled: true
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
 jwt:
   secret: ${JWT_SECRET}
@@ -47,5 +37,25 @@ app:
   cookie:
     secure: ${COOKIE_SECURE:false}
     same-site: ${COOKIE_SAME_SITE:Lax}
-    # Cookie использует публичный путь: браузер не видит внутренний StripPrefix Gateway.
     path: ${COOKIE_PATH:/api/identity/auth}
+
+clud:
+  identity:
+    events-topic: ${IDENTITY_EVENTS_TOPIC:identity.events.v1}
+
+springdoc:
+  swagger-ui:
+    path: /docs
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    readinessstate:
+      enabled: true

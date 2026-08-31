@@ -1,14 +1,16 @@
 package dev.identity.clud.jwt;
 
+import java.io.IOException;
+
+import dev.identity.clud.exception.InvalidTokenException;
 import dev.identity.clud.security.CustomUserDetails;
 import dev.identity.clud.security.CustomUserDetailsService;
-import io.jsonwebtoken.JwtException;
+import dev.identity.clud.security.SecurityErrorResponseWriter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,54 +19,48 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
-
-
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
+    private final SecurityErrorResponseWriter errorWriter;
 
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain
-    ) throws ServletException, IOException {
-
-        final String authHeader = request.getHeader("Authorization");
-
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            @NonNull FilterChain filterChain) throws ServletException, IOException {
+        String authorization = request.getHeader("Authorization");
+        if (authorization == null || !authorization.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
-            final String jwt = authHeader.substring("Bearer ".length());
-            final var userId = jwtService.extractUserId(jwt);
-
+            String token = authorization.substring(7);
+            UUIDHolder userId = new UUIDHolder(jwtService.extractUserId(token));
             if (SecurityContextHolder.getContext().getAuthentication() == null) {
-                CustomUserDetails userDetails = (CustomUserDetails) userDetailsService.loadUserByUsername(userId.toString());
-
-                if (jwtService.isTokenValid(jwt, userDetails, "access") && userDetails.isEnabled()
-                        && userDetails.isAccountNonLocked()) {
-                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            userDetails,
-                            null,
-                            userDetails.getAuthorities()
-                    );
-                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                CustomUserDetails user = userDetailsService.loadUserById(userId.value());
+                if (!jwtService.isTokenValid(token, user, "access")
+                        || !user.isEnabled()
+                        || !user.isAccountNonLocked()) {
+                    throw new InvalidTokenException("Invalid access token");
                 }
+                var authentication = new UsernamePasswordAuthenticationToken(
+                        user, null, user.getAuthorities());
+                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authentication);
             }
-        } catch (JwtException | UsernameNotFoundException | IllegalArgumentException e) {
-            log.debug("JWT authentication failed for [{} {}]: {}",
-                    request.getMethod(), request.getRequestURI(), e.getMessage(), e);
+            filterChain.doFilter(request, response);
         }
+        catch (InvalidTokenException | UsernameNotFoundException exception) {
+            SecurityContextHolder.clearContext();
+            errorWriter.write(response, HttpServletResponse.SC_UNAUTHORIZED, "INVALID_ACCESS_TOKEN", exception.getMessage());
+        }
+    }
 
-        filterChain.doFilter(request, response);
+    private record UUIDHolder(java.util.UUID value) {
     }
 }

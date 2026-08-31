@@ -1,6 +1,10 @@
 package dev.identity.clud.security;
 
+import java.time.Instant;
+import java.util.Locale;
+import java.util.UUID;
 
+import dev.identity.clud.event.UserRegisteredEvent;
 import dev.identity.clud.exception.EmailAlreadyExistsException;
 import dev.identity.clud.exception.InvalidTokenException;
 import dev.identity.clud.jwt.AccessTokenResponse;
@@ -9,29 +13,24 @@ import dev.identity.clud.jwt.JwtProperties;
 import dev.identity.clud.jwt.JwtService;
 import dev.identity.clud.refreshSession.RefreshSession;
 import dev.identity.clud.refreshSession.RefreshSessionRepository;
-import dev.identity.clud.user.Role;
 import dev.identity.clud.user.User;
 import dev.identity.clud.user.UserRepository;
 import dev.identity.clud.user.dto.LoginRequestDto;
 import dev.identity.clud.user.dto.RegisterRequestDto;
-import io.jsonwebtoken.JwtException;
+import dev.identity.clud.user.dto.UserResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.util.UUID;
-
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -44,123 +43,102 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final CustomUserDetailsService userDetailsService;
     private final JwtProperties jwtProperties;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
-    public void register(RegisterRequestDto request) {
-        String normalizedEmail = request.getEmail().trim().toLowerCase();
-
-        if (userRepository.existsByEmail(normalizedEmail)) {
-            throw new EmailAlreadyExistsException("User already exists");
+    public UserResponse register(RegisterRequestDto request) {
+        String email = normalizeEmail(request.getEmail());
+        if (userRepository.existsByEmail(email)) {
+            throw new EmailAlreadyExistsException("Email is already registered");
         }
 
         User user = User.builder()
-                .email(normalizedEmail)
+                .email(email)
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(Role.USER)
                 .build();
-
         try {
-            userRepository.save(user);
-            log.info("User registered: {}", normalizedEmail);
-        } catch (DataIntegrityViolationException e) {
-            throw new EmailAlreadyExistsException("User already exists");
+            userRepository.saveAndFlush(user);
         }
+        catch (DataIntegrityViolationException exception) {
+            throw new EmailAlreadyExistsException("Email is already registered");
+        }
+
+        eventPublisher.publishEvent(UserRegisteredEvent.from(user));
+        return UserResponse.from(user);
     }
 
     @Transactional
     public AccessTokenResponse login(LoginRequestDto request, HttpServletResponse response) {
-        Authentication authentication = authenticationManager.authenticate(
+        var authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.getEmail().trim().toLowerCase(),
-                        request.getPassword()
-                )
-        );
-
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        createRefreshSession(response, userDetails);
-
-        log.info("User logged in: {}", userDetails.getId());
-        return new AccessTokenResponse(jwtService.generateAccessToken(userDetails));
+                        normalizeEmail(request.getEmail()),
+                        request.getPassword()));
+        CustomUserDetails user = (CustomUserDetails) authentication.getPrincipal();
+        createRefreshSession(response, user);
+        return new AccessTokenResponse(jwtService.generateAccessToken(user));
     }
 
     @Transactional
     public AccessTokenResponse refresh(HttpServletRequest request, HttpServletResponse response) {
-        String refreshToken = cookieService.getCookieValue(request, CookieService.REFRESH_TOKEN_COOKIE)
-                .orElseThrow(() -> new InvalidTokenException("Refresh token not found"));
+        String refreshToken = cookieService
+                .getCookieValue(request, CookieService.REFRESH_TOKEN_COOKIE)
+                .orElseThrow(() -> new InvalidTokenException("Refresh token is required"));
 
-        UUID userId;
+        UUID userId = jwtService.extractUserId(refreshToken);
+        CustomUserDetails user;
         try {
-            userId = jwtService.extractUserId(refreshToken);
-        } catch (JwtException | IllegalArgumentException e) {
+            user = userDetailsService.loadUserById(userId);
+        }
+        catch (UsernameNotFoundException exception) {
+            throw new InvalidTokenException("Invalid refresh token");
+        }
+        if (!jwtService.isTokenValid(refreshToken, user, "refresh")
+                || !user.isEnabled()
+                || !user.isAccountNonLocked()) {
             throw new InvalidTokenException("Invalid refresh token");
         }
 
-        CustomUserDetails userDetails = (CustomUserDetails) userDetailsService.loadUserByUsername(userId.toString());
-
-        if (!userDetails.isEnabled() || !userDetails.isAccountNonLocked()) {
-            throw new InvalidTokenException("User account is disabled or locked");
-        }
-
-        if (!jwtService.isTokenValid(refreshToken, userDetails, "refresh")) {
-            throw new InvalidTokenException("Refresh token expired or invalid");
-        }
-
-        String tokenHash = hashToken(refreshToken);
-
-        RefreshSession session = refreshSessionRepository.findByTokenHash(tokenHash)
-                .orElseThrow(() -> new InvalidTokenException("Session not found"));
-
+        RefreshSession session = refreshSessionRepository.findByTokenHash(hashToken(refreshToken))
+                .orElseThrow(() -> new InvalidTokenException("Refresh session not found"));
         if (session.isRevoked()) {
             refreshSessionRepository.revokeAllByUserId(userId);
-            log.warn("Token reuse detected for user: {}", userId);
-            throw new InvalidTokenException("Token reuse detected. All sessions revoked.");
+            throw new InvalidTokenException("Refresh token reuse detected");
         }
-
-        if (session.getExpiresAt().isBefore(Instant.now())) {
-            throw new InvalidTokenException("Session expired");
+        if (!session.getExpiresAt().isAfter(Instant.now())) {
+            throw new InvalidTokenException("Refresh session expired");
         }
 
         session.setRevoked(true);
-        refreshSessionRepository.save(session);
-
-        createRefreshSession(response, userDetails);
-        return new AccessTokenResponse(jwtService.generateAccessToken(userDetails));
+        createRefreshSession(response, user);
+        return new AccessTokenResponse(jwtService.generateAccessToken(user));
     }
 
     @Transactional
     public void logout(HttpServletRequest request, HttpServletResponse response) {
-        cookieService.getCookieValue(request, CookieService.REFRESH_TOKEN_COOKIE).ifPresent(token -> {
-            String tokenHash = hashToken(token);
-            refreshSessionRepository.findByTokenHash(tokenHash).ifPresent(session -> {
-                session.setRevoked(true);
-                refreshSessionRepository.save(session);
-            });
-            cookieService.deleteCookie(response, CookieService.REFRESH_TOKEN_COOKIE);
-        });
-        log.info("User logged out");
+        cookieService.getCookieValue(request, CookieService.REFRESH_TOKEN_COOKIE)
+                .flatMap(token -> refreshSessionRepository.findByTokenHash(hashToken(token)))
+                .ifPresent(session -> session.setRevoked(true));
+        cookieService.deleteCookie(response, CookieService.REFRESH_TOKEN_COOKIE);
     }
 
-    private void createRefreshSession(HttpServletResponse response, CustomUserDetails userDetails) {
-        String refreshToken = jwtService.generateRefreshToken(userDetails);
-        String tokenHash = hashToken(refreshToken);
-        String jti = jwtService.extractJti(refreshToken);
-
+    private void createRefreshSession(HttpServletResponse response, CustomUserDetails user) {
+        String token = jwtService.generateRefreshToken(user);
         RefreshSession session = RefreshSession.builder()
-                .userId(userDetails.getId())
-                .tokenHash(tokenHash)
-                .jti(jti)
+                .userId(user.getId())
+                .tokenHash(hashToken(token))
+                .jti(jwtService.extractJti(token))
                 .expiresAt(Instant.now().plusMillis(jwtProperties.getRefreshTokenExpiration()))
-                .revoked(false)
                 .build();
-
         refreshSessionRepository.save(session);
-
         cookieService.addTokenCookie(
                 response,
                 CookieService.REFRESH_TOKEN_COOKIE,
-                refreshToken,
-                jwtProperties.getRefreshTokenExpiration()
-        );
+                token,
+                jwtProperties.getRefreshTokenExpiration());
+    }
+
+    private String normalizeEmail(String email) {
+        return email.trim().toLowerCase(Locale.ROOT);
     }
 
     private String hashToken(String token) {

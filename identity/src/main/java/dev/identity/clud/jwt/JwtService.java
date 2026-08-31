@@ -1,5 +1,11 @@
 package dev.identity.clud.jwt;
 
+import java.util.Date;
+import java.util.UUID;
+import java.util.function.Function;
+
+import javax.crypto.SecretKey;
+
 import dev.identity.clud.exception.InvalidTokenException;
 import dev.identity.clud.security.CustomUserDetails;
 import io.jsonwebtoken.Claims;
@@ -8,92 +14,58 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
-
-import javax.crypto.SecretKey;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
-import java.util.function.Function;
 
 @Service
 public class JwtService {
 
-    private final JwtProperties jwtProperties;
+    private final JwtProperties properties;
     private final SecretKey signingKey;
 
-    public JwtService(JwtProperties jwtProperties) {
-        this.jwtProperties = jwtProperties;
-        byte[] keyBytes = Decoders.BASE64.decode(jwtProperties.getSecret());
-        this.signingKey = Keys.hmacShaKeyFor(keyBytes);
+    public JwtService(JwtProperties properties) {
+        this.properties = properties;
+        this.signingKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(properties.getSecret()));
     }
 
-    private SecretKey getSigningKey() {
-        return signingKey;
+    public String generateAccessToken(CustomUserDetails user) {
+        return buildToken(user, properties.getAccessTokenExpiration(), "access", null);
     }
 
-    public String generateAccessToken(CustomUserDetails userDetails) {
-        return buildToken(userDetails, jwtProperties.getAccessTokenExpiration(), "access", null);
+    public String generateRefreshToken(CustomUserDetails user) {
+        return buildToken(user, properties.getRefreshTokenExpiration(), "refresh", UUID.randomUUID().toString());
     }
 
-    public String generateRefreshToken(CustomUserDetails userDetails) {
-        String jti = UUID.randomUUID().toString();
-        return buildToken(userDetails, jwtProperties.getRefreshTokenExpiration(), "refresh", jti);
-    }
-
-    private String buildToken(CustomUserDetails userDetails, long expiration, String tokenType, String jti) {
-        List<String> roles = userDetails.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .toList();
-
-        var builder = Jwts.builder()
-                .subject(userDetails.getId().toString())
-                .claim("email", userDetails.getEmail())
-                .claim("role", roles)
-                .claim("type", tokenType)
-                .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(getSigningKey(), Jwts.SIG.HS256);
-
-        if (jti != null) {
-            builder.id(jti);
-        }
-
-        return builder.compact();
-    }
-
-    public boolean isTokenValid(String token, CustomUserDetails userDetails, String expectedType) {
-        final String userId = extractSubject(token);
-        final String type = extractClaim(token, claims -> claims.get("type", String.class));
-        return userId.equals(userDetails.getId().toString())
-                && expectedType.equals(type)
-                && !isTokenExpired(token);
-    }
-
-    public boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
-    }
-
-    public String extractSubject(String token) {
-        return extractClaim(token, Claims::getSubject);
+    public boolean isTokenValid(String token, CustomUserDetails user, String expectedType) {
+        Claims claims = extractAllClaims(token);
+        return user.getId().toString().equals(claims.getSubject())
+                && expectedType.equals(claims.get("type", String.class))
+                && claims.getExpiration().after(new Date());
     }
 
     public UUID extractUserId(String token) {
-        return UUID.fromString(extractSubject(token));
+        return UUID.fromString(extractClaim(token, Claims::getSubject));
     }
 
     public String extractJti(String token) {
         return extractClaim(token, Claims::getId);
     }
 
-    private Date extractExpiration(String token) {
-        return extractClaim(token, Claims::getExpiration);
+    private String buildToken(CustomUserDetails user, long expiration, String type, String jti) {
+        var builder = Jwts.builder()
+                .subject(user.getId().toString())
+                .claim("email", user.getEmail())
+                .claim("type", type)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(signingKey, Jwts.SIG.HS256);
+        if (jti != null) {
+            builder.id(jti);
+        }
+        return builder.compact();
     }
 
-    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
-        final Claims claims = extractAllClaims(token);
-        return claimsResolver.apply(claims);
+    private <T> T extractClaim(String token, Function<Claims, T> resolver) {
+        return resolver.apply(extractAllClaims(token));
     }
 
     private Claims extractAllClaims(String token) {
@@ -103,11 +75,12 @@ public class JwtService {
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
-        } catch (ExpiredJwtException e) {
+        }
+        catch (ExpiredJwtException exception) {
             throw new InvalidTokenException("Token expired");
-        } catch (JwtException e) {
-            throw new InvalidTokenException("Invalid token: " + e.getMessage());
+        }
+        catch (JwtException | IllegalArgumentException exception) {
+            throw new InvalidTokenException("Invalid token");
         }
     }
 }
-

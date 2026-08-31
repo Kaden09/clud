@@ -66,6 +66,7 @@ precedence over values from `.env`. All `.env` files are ignored by Git.
 | `MINIO_*` | MinIO credentials and API/console ports |
 | `KAFKA_BOOTSTRAP_SERVERS` | Kafka address supplied to application containers |
 | `KAFKA_NODE_ID`, `KAFKA_PROCESS_ROLES`, `KAFKA_PORT` | Local Kafka node configuration |
+| `SHARING_*` | Sharing database, public URL, timeouts, and event topic |
 
 Do not place production credentials in `.env.example`.
 
@@ -188,6 +189,18 @@ Business requests require an `X-User-ID` UUID. This is a temporary development
 contract until Identity authentication allows Gateway to supply a trusted user
 header. See [the File Service documentation](file/README.md) for endpoints,
 examples, persistence rules, and event payloads.
+
+## Public sharing service
+
+The Sharing Service persists one active public link per owner and file in the
+`sharing_service` PostgreSQL schema. It validates ownership and file state
+through File Service, supports optional expiration and revocation, publishes
+`FileShared`, and consumes `FileDeleted` to revoke links.
+
+Public download currently stops at a documented Storage Service boundary and
+returns `501 STORAGE_INTEGRATION_PENDING` after the token and file are fully
+validated. See [the Sharing Service documentation](sharing/README.md) for the
+API, token storage, events, and pending download contract.
 
 ## Testing
 

@@ -1,107 +1,73 @@
 package dev.identity.clud.exception;
 
+import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.context.request.ServletWebRequest;
-import org.springframework.web.context.request.WebRequest;
-
-import java.nio.file.AccessDeniedException;
-import java.time.DateTimeException;
-import java.time.LocalDateTime;
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 @Slf4j
 @RestControllerAdvice
 public class ErrorHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException e, WebRequest request) {
-        Map<String, String> details = e.getBindingResult().getFieldErrors().stream()
-                .collect(Collectors.toMap(
-                        FieldError::getField,
-                        fieldError -> Objects.requireNonNullElse(fieldError.getDefaultMessage(), "Invalid value")
-                ));
-
-        log.warn("Validation failed on {}: {}", getPath(request), details);
-
-        ErrorResponse response = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                "Validation Failed",
-                "Request validation failed",
-                getPath(request),
-                LocalDateTime.now(),
-                details
-        );
-        return ResponseEntity.badRequest().body(response);
+    ResponseEntity<ErrorResponse> handleValidation(
+            MethodArgumentNotValidException exception,
+            HttpServletRequest request) {
+        Map<String, String> errors = new LinkedHashMap<>();
+        exception.getBindingResult().getFieldErrors()
+                .forEach(error -> errors.putIfAbsent(error.getField(), error.getDefaultMessage()));
+        return response(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", "Request validation failed", request, errors);
     }
 
     @ExceptionHandler(EmailAlreadyExistsException.class)
-    public ResponseEntity<ErrorResponse> handleEmailExists(EmailAlreadyExistsException e, WebRequest request) {
-        log.warn("Email conflict on {}: {}", getPath(request), e.getMessage());
-        return buildResponse(HttpStatus.CONFLICT, "Conflict", e.getMessage(), request);
+    ResponseEntity<ErrorResponse> handleConflict(
+            EmailAlreadyExistsException exception,
+            HttpServletRequest request) {
+        return response(HttpStatus.CONFLICT, "EMAIL_ALREADY_EXISTS", exception.getMessage(), request, null);
     }
 
     @ExceptionHandler({InvalidTokenException.class, UsernameNotFoundException.class, BadCredentialsException.class})
-    public ResponseEntity<ErrorResponse> handleAuth(RuntimeException e, WebRequest request) {
-        log.warn("Authentication error on {}: {}", getPath(request), e.getMessage());
-        return buildResponse(HttpStatus.UNAUTHORIZED, "Unauthorized", e.getMessage(), request);
-    }
-
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException e, WebRequest request) {
-        log.warn("Access denied on {}: {}", getPath(request), e.getMessage());
-        return buildResponse(HttpStatus.FORBIDDEN, "Forbidden", e.getMessage(), request);
+    ResponseEntity<ErrorResponse> handleAuthentication(
+            RuntimeException exception,
+            HttpServletRequest request) {
+        return response(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_FAILED", "Authentication failed", request, null);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ErrorResponse> handleNotReadable(HttpMessageNotReadableException e, WebRequest request) {
-        log.warn("Malformed request on {}: {}", getPath(request), e.getMessage());
-        return buildResponse(HttpStatus.BAD_REQUEST, "Bad Request", "Malformed JSON or missing request body", request);
-    }
-
-    @ExceptionHandler(DateTimeException.class)
-    public ResponseEntity<ErrorResponse> handleDateTime(DateTimeException e, WebRequest request) {
-        log.warn("Date/time parse error on {}: {}", getPath(request), e.getMessage());
-        return buildResponse(HttpStatus.BAD_REQUEST, "Bad Request", e.getMessage(), request);
+    ResponseEntity<ErrorResponse> handleMalformedBody(
+            HttpMessageNotReadableException exception,
+            HttpServletRequest request) {
+        return response(HttpStatus.BAD_REQUEST, "MALFORMED_REQUEST", "Malformed JSON or missing request body", request, null);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleException(Exception e, WebRequest request) {
-        log.error("Unexpected error on {}: {}", getPath(request), e.getMessage(), e);
-        return buildResponse(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                "Internal Server Error",
-                "An unexpected error occurred",
-                request
-        );
+    ResponseEntity<ErrorResponse> handleUnexpected(Exception exception, HttpServletRequest request) {
+        log.error("Unexpected identity error on {}", request.getRequestURI(), exception);
+        return response(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "An unexpected error occurred", request, null);
     }
 
-    private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String error, String message, WebRequest request) {
-        ErrorResponse body = new ErrorResponse(
+    private ResponseEntity<ErrorResponse> response(
+            HttpStatus status,
+            String code,
+            String message,
+            HttpServletRequest request,
+            Map<String, String> fieldErrors) {
+        return ResponseEntity.status(status).body(new ErrorResponse(
+                Instant.now(),
                 status.value(),
-                error,
+                code,
                 message,
-                getPath(request),
-                LocalDateTime.now(),
-                null
-        );
-        return ResponseEntity.status(status).body(body);
-    }
-
-    private String getPath(WebRequest request) {
-        if (request instanceof ServletWebRequest swr) {
-            return swr.getRequest().getRequestURI();
-        }
-        return "unknown";
+                request.getRequestURI(),
+                fieldErrors));
     }
 }

@@ -1,14 +1,13 @@
 package dev.identity.clud.exception;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Map;
 
 public record ErrorResponse(
+        Instant timestamp,
         int status,
-        String error,
+        String code,
         String message,
         String path,
-        LocalDateTime timestamp,
-        Map<String, String> details
-) {
+        Map<String, String> fieldErrors) {
 }

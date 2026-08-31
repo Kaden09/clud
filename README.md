@@ -66,6 +66,7 @@ precedence over values from `.env`. All `.env` files are ignored by Git.
 | `MINIO_*` | MinIO credentials and API/console ports |
 | `KAFKA_BOOTSTRAP_SERVERS` | Kafka address supplied to application containers |
 | `KAFKA_NODE_ID`, `KAFKA_PROCESS_ROLES`, `KAFKA_PORT` | Local Kafka node configuration |
+| `IDENTITY_*`, `JWT_*`, `CORS_*`, `COOKIE_*` | Identity database, events, tokens, CORS, and refresh cookie |
 | `SHARING_*` | Sharing database, public URL, timeouts, and event topic |
 
 Do not place production credentials in `.env.example`.
@@ -176,7 +177,11 @@ Kafka has separate addresses:
 | `/api/sharing/**` | Sharing |
 
 Gateway removes the first two path segments before forwarding a request. It
-also preserves an incoming `X-Request-ID` or generates one when absent.
+also preserves an incoming `X-Request-ID` or generates one when absent. Refresh cookies use the public browser path `/api/identity/auth`, because cookie matching happens before Gateway strips the service prefix.
+
+## Identity service
+
+Identity owns registration, login, refresh-token rotation, logout, and the current user profile. Access tokens are bearer JWTs; refresh tokens are HttpOnly cookies backed by hashed PostgreSQL sessions. Successful registration publishes the versioned `UserRegistered` event. See [the Identity Service documentation](identity/README.md) for its API and local setup.
 
 ## File metadata service
 

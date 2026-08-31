@@ -13,12 +13,12 @@ public class SecurityErrorResponseWriter {
     public void write(HttpServletResponse response, int status, String code, String message) throws IOException {
         response.setStatus(status);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.getWriter().write("""
-                {"timestamp":"%s","status":%d,"code":"%s","message":"%s"}
-                """.formatted(Instant.now(), status, escape(code), escape(message)).trim());
+        String body = "{\"timestamp\":\"%s\",\"status\":%d,\"code\":\"%s\",\"message\":\"%s\"}"
+                .formatted(Instant.now(), status, escape(code), escape(message));
+        response.getWriter().write(body);
     }
 
     private String escape(String value) {
-        return value.replace("\\", "\\\\").replace(""", "\\"");
+        return value.replace("\\", "\\\\").replace("\\"", "\\\\"");
     }
 }

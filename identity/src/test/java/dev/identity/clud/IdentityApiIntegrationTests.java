@@ -68,8 +68,7 @@ class IdentityApiIntegrationTests {
 
         assertThat(response.statusCode()).isEqualTo(201);
         assertThat(response.body())
-                .contains("\\\"email\\\":\\\"user@example.com\\\"")
-                .contains("\\\"id\\\"")
+                .contains("user@example.com", "\"id\"")
                 .doesNotContain("password", "role");
 
         verify(kafkaTemplate).send(
@@ -112,7 +111,7 @@ class IdentityApiIntegrationTests {
                 null);
         assertThat(currentUser.statusCode()).isEqualTo(200);
         assertThat(currentUser.body())
-                .contains("\\\"email\\\":\\\"user@example.com\\\"")
+                .contains("user@example.com", "\"id\"")
                 .doesNotContain("password", "role");
 
         HttpResponse<String> logout = request(

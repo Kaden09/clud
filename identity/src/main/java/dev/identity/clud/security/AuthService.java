@@ -17,6 +17,7 @@ import dev.identity.clud.jwt.JwtProperties;
 import dev.identity.clud.jwt.JwtService;
 import dev.identity.clud.refreshSession.RefreshSession;
 import dev.identity.clud.refreshSession.RefreshSessionRepository;
+import dev.identity.clud.refreshSession.RefreshSessionRevocationService;
 import dev.identity.clud.user.User;
 import dev.identity.clud.user.UserRepository;
 import dev.identity.clud.user.dto.LoginRequestDto;
@@ -40,6 +41,7 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final RefreshSessionRepository refreshSessionRepository;
+    private final RefreshSessionRevocationService revocationService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final CookieService cookieService;
@@ -104,7 +106,7 @@ public class AuthService {
         RefreshSession session = refreshSessionRepository.findByTokenHash(hashToken(refreshToken))
                 .orElseThrow(() -> new InvalidTokenException("Refresh session not found"));
         if (session.isRevoked()) {
-            refreshSessionRepository.revokeAllByUserId(userId);
+            revocationService.revokeAll(userId);
             throw new InvalidTokenException("Refresh token reuse detected");
         }
         if (!session.getExpiresAt().isAfter(Instant.now())) {

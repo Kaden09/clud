@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class RestAccessDeniedHandler implements AccessDeniedHandler {
 
-    private final SecurityApiErrorWriter errorWriter;
+    private final SecurityErrorResponseWriter errorWriter;
 
     @Override
     public void handle(

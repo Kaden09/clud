@@ -1,5 +1,8 @@
-# environment variables
+# Environment variables
 .env*
 !.env.example
 
-.idea
+# IDE
+.idea/
+*.iml
+.vscode/

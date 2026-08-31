@@ -1,4 +1,4 @@
-package dev.identity.clud.jwt;
+package dev.identity.clud.security.jwt;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.validation.constraints.AssertTrue;

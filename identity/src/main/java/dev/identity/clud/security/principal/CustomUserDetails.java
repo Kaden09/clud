@@ -1,4 +1,4 @@
-package dev.identity.clud.security;
+package dev.identity.clud.security.principal;
 
 import java.time.Instant;
 import java.util.Collection;

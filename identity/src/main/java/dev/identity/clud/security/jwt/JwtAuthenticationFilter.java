@@ -1,11 +1,11 @@
-package dev.identity.clud.jwt;
+package dev.identity.clud.security.jwt;
 
 import java.io.IOException;
 
-import dev.identity.clud.exception.InvalidTokenException;
-import dev.identity.clud.security.CustomUserDetails;
-import dev.identity.clud.security.CustomUserDetailsService;
-import dev.identity.clud.security.SecurityErrorResponseWriter;
+import dev.identity.clud.error.InvalidTokenException;
+import dev.identity.clud.security.principal.CustomUserDetails;
+import dev.identity.clud.security.principal.CustomUserDetailsService;
+import dev.identity.clud.security.handler.SecurityErrorResponseWriter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

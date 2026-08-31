@@ -1,4 +1,4 @@
-package dev.identity.clud.security;
+package dev.identity.clud.auth;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -9,19 +9,19 @@ import java.util.Locale;
 import java.util.UUID;
 
 import dev.identity.clud.event.UserRegisteredEvent;
-import dev.identity.clud.exception.EmailAlreadyExistsException;
-import dev.identity.clud.exception.InvalidTokenException;
-import dev.identity.clud.jwt.AccessTokenResponse;
-import dev.identity.clud.jwt.CookieService;
-import dev.identity.clud.jwt.JwtProperties;
-import dev.identity.clud.jwt.JwtService;
-import dev.identity.clud.refreshSession.RefreshSession;
-import dev.identity.clud.refreshSession.RefreshSessionRepository;
-import dev.identity.clud.refreshSession.RefreshSessionRevocationService;
+import dev.identity.clud.error.EmailAlreadyExistsException;
+import dev.identity.clud.error.InvalidTokenException;
+import dev.identity.clud.auth.dto.AccessTokenResponse;
+import dev.identity.clud.session.CookieService;
+import dev.identity.clud.security.jwt.JwtProperties;
+import dev.identity.clud.security.jwt.JwtService;
+import dev.identity.clud.session.RefreshSession;
+import dev.identity.clud.session.RefreshSessionRepository;
+import dev.identity.clud.session.RefreshSessionRevocationService;
 import dev.identity.clud.user.User;
 import dev.identity.clud.user.UserRepository;
-import dev.identity.clud.user.dto.LoginRequestDto;
-import dev.identity.clud.user.dto.RegisterRequestDto;
+import dev.identity.clud.auth.dto.LoginRequestDto;
+import dev.identity.clud.auth.dto.RegisterRequestDto;
 import dev.identity.clud.user.dto.UserResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

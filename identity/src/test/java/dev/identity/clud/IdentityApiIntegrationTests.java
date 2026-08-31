@@ -16,7 +16,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import dev.identity.clud.event.UserRegisteredEvent;
-import dev.identity.clud.refreshSession.RefreshSessionRepository;
+import dev.identity.clud.session.RefreshSessionRepository;
 import dev.identity.clud.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

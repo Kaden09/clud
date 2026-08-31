@@ -3,7 +3,7 @@ package dev.identity.clud.user.dto;
 import java.time.Instant;
 import java.util.UUID;
 
-import dev.identity.clud.security.CustomUserDetails;
+import dev.identity.clud.security.principal.CustomUserDetails;
 import dev.identity.clud.user.User;
 
 public record UserResponse(

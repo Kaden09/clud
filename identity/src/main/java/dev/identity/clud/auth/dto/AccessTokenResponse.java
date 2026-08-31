@@ -1,4 +1,4 @@
-package dev.identity.clud.jwt;
+package dev.identity.clud.auth.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

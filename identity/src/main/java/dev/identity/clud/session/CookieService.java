@@ -1,4 +1,4 @@
-package dev.identity.clud.jwt;
+package dev.identity.clud.session;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;

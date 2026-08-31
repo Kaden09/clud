@@ -1,4 +1,4 @@
-package dev.identity.clud.security;
+package dev.identity.clud.security.principal;
 
 import java.util.Locale;
 import java.util.UUID;

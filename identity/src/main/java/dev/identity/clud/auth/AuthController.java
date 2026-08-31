@@ -1,8 +1,8 @@
-package dev.identity.clud.security;
+package dev.identity.clud.auth;
 
-import dev.identity.clud.jwt.AccessTokenResponse;
-import dev.identity.clud.user.dto.LoginRequestDto;
-import dev.identity.clud.user.dto.RegisterRequestDto;
+import dev.identity.clud.auth.dto.AccessTokenResponse;
+import dev.identity.clud.auth.dto.LoginRequestDto;
+import dev.identity.clud.auth.dto.RegisterRequestDto;
 import dev.identity.clud.user.dto.UserResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

@@ -1,4 +1,4 @@
-package dev.identity.clud.exception;
+package dev.identity.clud.error;
 
 import java.time.Instant;
 import java.util.Map;

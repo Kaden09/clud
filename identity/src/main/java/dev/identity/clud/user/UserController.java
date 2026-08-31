@@ -1,6 +1,6 @@
-package dev.identity.clud.user.controller;
+package dev.identity.clud.user;
 
-import dev.identity.clud.security.CustomUserDetails;
+import dev.identity.clud.security.principal.CustomUserDetails;
 import dev.identity.clud.user.dto.UserResponse;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -1,4 +1,4 @@
-package dev.identity.clud.refreshSession;
+package dev.identity.clud.session;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;

@@ -1,4 +1,4 @@
-package dev.identity.clud.jwt;
+package dev.identity.clud.security.jwt;
 
 import java.util.Date;
 import java.util.UUID;
@@ -6,8 +6,8 @@ import java.util.function.Function;
 
 import javax.crypto.SecretKey;
 
-import dev.identity.clud.exception.InvalidTokenException;
-import dev.identity.clud.security.CustomUserDetails;
+import dev.identity.clud.error.InvalidTokenException;
+import dev.identity.clud.security.principal.CustomUserDetails;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;

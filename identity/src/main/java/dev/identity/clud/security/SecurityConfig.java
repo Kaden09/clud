@@ -2,7 +2,7 @@ package dev.identity.clud.security;
 
 import java.util.List;
 
-import dev.identity.clud.jwt.JwtAuthenticationFilter;
+import dev.identity.clud.security.jwt.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

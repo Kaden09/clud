@@ -1,4 +1,4 @@
-package dev.identity.clud.security;
+package dev.identity.clud.security.handler;
 
 import java.io.IOException;
 import java.time.Instant;

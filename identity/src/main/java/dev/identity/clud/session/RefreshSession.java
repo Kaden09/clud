@@ -1,4 +1,4 @@
-package dev.identity.clud.refreshSession;
+package dev.identity.clud.session;
 
 import jakarta.persistence.*;
 import lombok.*;

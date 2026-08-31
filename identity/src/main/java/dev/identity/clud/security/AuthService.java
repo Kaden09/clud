@@ -50,14 +50,14 @@ public class AuthService {
 
     @Transactional
     public UserResponse register(RegisterRequestDto request) {
-        String email = normalizeEmail(request.getEmail());
+        String email = normalizeEmail(request.email());
         if (userRepository.existsByEmail(email)) {
             throw new EmailAlreadyExistsException("Email is already registered");
         }
 
         User user = User.builder()
                 .email(email)
-                .password(passwordEncoder.encode(request.getPassword()))
+                .password(passwordEncoder.encode(request.password()))
                 .build();
         try {
             userRepository.saveAndFlush(user);
@@ -74,8 +74,8 @@ public class AuthService {
     public AccessTokenResponse login(LoginRequestDto request, HttpServletResponse response) {
         var authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        normalizeEmail(request.getEmail()),
-                        request.getPassword()));
+                        normalizeEmail(request.email()),
+                        request.password()));
         CustomUserDetails user = (CustomUserDetails) authentication.getPrincipal();
         createRefreshSession(response, user);
         return new AccessTokenResponse(jwtService.generateAccessToken(user));

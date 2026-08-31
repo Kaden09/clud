@@ -40,9 +40,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             String token = authorization.substring(7);
-            UUIDHolder userId = new UUIDHolder(jwtService.extractUserId(token));
+            var userId = jwtService.extractUserId(token);
             if (SecurityContextHolder.getContext().getAuthentication() == null) {
-                CustomUserDetails user = userDetailsService.loadUserById(userId.value());
+                CustomUserDetails user = userDetailsService.loadUserById(userId);
                 if (!jwtService.isTokenValid(token, user, "access")
                         || !user.isEnabled()
                         || !user.isAccountNonLocked()) {
@@ -61,6 +61,4 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
     }
 
-    private record UUIDHolder(java.util.UUID value) {
-    }
 }

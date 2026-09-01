@@ -24,7 +24,7 @@ public class FileServiceClient {
 	public FileNodeResponse getActiveFile(UUID ownerId, UUID fileId) {
 		try {
 			FileNodeResponse response = fileServiceRestClient.get()
-					.uri("/nodes/{nodeId}", fileId)
+					.uri("/internal/nodes/{nodeId}", fileId)
 					.header(USER_ID_HEADER, ownerId.toString())
 					.retrieve()
 					.onStatus(HttpStatusCode::is5xxServerError, (request, upstreamResponse) -> {

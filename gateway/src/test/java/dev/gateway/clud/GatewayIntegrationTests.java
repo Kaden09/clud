@@ -64,7 +64,6 @@ class GatewayIntegrationTests {
         String upstreamUrl = "http://localhost:" + UPSTREAM.getAddress().getPort();
         registry.add("IDENTITY_SERVICE_URL", () -> upstreamUrl);
         registry.add("FILE_SERVICE_URL", () -> upstreamUrl);
-        registry.add("STORAGE_SERVICE_URL", () -> upstreamUrl);
         registry.add("SHARING_SERVICE_URL", () -> upstreamUrl);
         registry.add("JWT_SECRET", () -> JWT_SECRET);
     }
@@ -240,7 +239,7 @@ class GatewayIntegrationTests {
     @Test
     void preservesIncomingRequestId() throws Exception {
         String requestId = "client-request-id";
-        HttpRequest request = authorized(HttpRequest.newBuilder(gatewayUri("/api/storage/objects/1")))
+        HttpRequest request = authorized(HttpRequest.newBuilder(gatewayUri("/api/files/nodes/1")))
                 .header(RequestIdFilter.REQUEST_ID_HEADER, requestId)
                 .GET()
                 .build();
@@ -249,6 +248,14 @@ class GatewayIntegrationTests {
 
         assertThat(response.headers().allValues(RequestIdFilter.REQUEST_ID_HEADER)).containsExactly(requestId);
         assertThat(response.body()).contains("requestId=" + requestId);
+    }
+
+    @Test
+    void rejectsInternalFileContractThroughGateway() throws Exception {
+        HttpResponse<String> response = send(authorizedGet("/api/files/internal/nodes/1"));
+
+        assertThat(response.statusCode()).isEqualTo(403);
+        assertThat(response.body()).contains("\"code\":\"FORBIDDEN\"");
     }
 
     @Test
@@ -323,7 +330,6 @@ class GatewayIntegrationTests {
         return Stream.of(
                 Arguments.of("/api/identity/auth/login", "/auth/login"),
                 Arguments.of("/api/files/folders/1", "/folders/1"),
-                Arguments.of("/api/storage/objects/1", "/objects/1"),
                 Arguments.of("/api/sharing/links/1", "/links/1"));
     }
 

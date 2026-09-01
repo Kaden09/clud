@@ -62,6 +62,15 @@ public class ApiExceptionHandler {
 		return error(HttpStatus.BAD_REQUEST, "INVALID_NODE_OPERATION", exception.getMessage(), request, Map.of());
 	}
 
+	@ExceptionHandler(UpstreamStorageException.class)
+	ResponseEntity<ApiError> handleStorageUnavailable(
+			UpstreamStorageException exception,
+			HttpServletRequest request) {
+		log.error("Storage upstream error: uri={}, message={}", request.getRequestURI(), exception.getMessage());
+
+		return error(HttpStatus.BAD_GATEWAY, "STORAGE_UNAVAILABLE", exception.getMessage(), request, Map.of());
+	}
+
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	ResponseEntity<ApiError> handleValidation(
 			MethodArgumentNotValidException exception,

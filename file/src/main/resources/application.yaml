@@ -25,6 +25,10 @@ spring:
 clud:
   file:
     events-topic: ${FILE_EVENTS_TOPIC:file.events.v1}
+    storage-service-url: ${STORAGE_SERVICE_URL:http://localhost:8083}
+    http:
+      connect-timeout: ${FILE_STORAGE_HTTP_CONNECT_TIMEOUT:2s}
+      read-timeout: ${FILE_STORAGE_HTTP_READ_TIMEOUT:30s}
 
 management:
   endpoints:

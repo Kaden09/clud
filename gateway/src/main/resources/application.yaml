@@ -18,12 +18,6 @@ spring:
                 - Path=/api/files/**
               filters:
                 - StripPrefix=2
-            - id: storage
-              uri: ${STORAGE_SERVICE_URL}
-              predicates:
-                - Path=/api/storage/**
-              filters:
-                - StripPrefix=2
             - id: sharing
               uri: ${SHARING_SERVICE_URL}
               predicates:

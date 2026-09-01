@@ -58,6 +58,7 @@ public class GatewaySecurityConfig {
                                 "/api/identity/auth/**",
                                 "/api/sharing/public/**",
                                 "/actuator/health/**").permitAll()
+                        .requestMatchers("/api/files/internal/**").denyAll()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll())
                 .oauth2ResourceServer(resourceServer -> resourceServer

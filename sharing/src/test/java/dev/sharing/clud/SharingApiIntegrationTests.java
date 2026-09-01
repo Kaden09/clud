@@ -241,7 +241,7 @@ class SharingApiIntegrationTests {
 				null);
 
 		assertThat(download.statusCode()).isEqualTo(404);
-		assertThat(download.body()).contains("SHARED_FILE_NOT_FOUND");
+		assertThat(download.body()).contains("RESOURCE_NOT_FOUND");
 		assertThat(LAST_STORAGE_KEY).hasValue(MISSING_STORAGE_KEY);
 	}
 

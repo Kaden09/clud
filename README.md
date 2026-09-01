@@ -66,7 +66,7 @@ precedence over values from `.env`. All `.env` files are ignored by Git.
 | `MINIO_*` | MinIO credentials and API/console ports |
 | `KAFKA_BOOTSTRAP_SERVERS` | Kafka address supplied to application containers |
 | `KAFKA_NODE_ID`, `KAFKA_PROCESS_ROLES`, `KAFKA_PORT` | Local Kafka node configuration |
-| `IDENTITY_*`, `JWT_*`, `CORS_*`, `COOKIE_*` | Identity database, events, tokens, CORS, and refresh cookie |
+| `IDENTITY_*`, `JWT_*`, `CORS_*`, `COOKIE_*` | Identity database and sessions plus shared Gateway token verification and browser CORS |
 | `SHARING_*` | Sharing database, public URL, timeouts, and event topic |
 
 Do not place production credentials in `.env.example`.
@@ -177,7 +177,12 @@ Kafka has separate addresses:
 | `/api/sharing/**` | Sharing |
 
 Gateway removes the first two path segments before forwarding a request. It
-also preserves an incoming `X-Request-ID` or generates one when absent. Refresh cookies use the public browser path `/api/identity/auth`, because cookie matching happens before Gateway strips the service prefix.
+also preserves an incoming `X-Request-ID` or generates one when absent.
+Gateway validates Identity access tokens for protected API routes, removes any
+client-provided `X-User-ID`, and forwards the authenticated token subject as
+the trusted user header. Refresh cookies use the public browser path
+`/api/identity/auth`, because cookie matching happens before Gateway strips
+the service prefix.
 
 ## Identity service
 
@@ -190,10 +195,10 @@ schema. It supports directory browsing, rename, move, recursive trash, restore,
 and versioned Kafka lifecycle events. File bytes remain owned by the future
 Storage Service.
 
-Business requests require an `X-User-ID` UUID. This is a temporary development
-contract until Identity authentication allows Gateway to supply a trusted user
-header. See [the File Service documentation](file/README.md) for endpoints,
-examples, persistence rules, and event payloads.
+Business requests receive a trusted `X-User-ID` UUID from Gateway after access
+token validation. Client-provided values are removed before routing. See
+[the File Service documentation](file/README.md) for endpoints, examples,
+persistence rules, and event payloads.
 
 ## Public sharing service
 

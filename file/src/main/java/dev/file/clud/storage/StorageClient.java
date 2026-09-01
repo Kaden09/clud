@@ -6,8 +6,9 @@ import dev.file.clud.error.UpstreamStorageException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Component;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,13 +20,13 @@ public class StorageClient {
     private final RestClient storageRestClient;
 
     public StoredObjectResponse store(MultipartFile file) {
-        MultipartBodyBuilder body = new MultipartBodyBuilder();
-        body.part("file", file.getResource());
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", file.getResource());
         try {
             StoredObjectResponse response = storageRestClient.post()
                     .uri("/objects")
                     .contentType(MediaType.MULTIPART_FORM_DATA)
-                    .body(body.build())
+                    .body(body)
                     .retrieve()
                     .onStatus(HttpStatusCode::isError, (request, upstream) -> {
                         throw new UpstreamStorageException(

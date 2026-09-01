@@ -7,14 +7,19 @@ import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.InetSocketAddress;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.UUID;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,12 +27,16 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import dev.file.clud.event.FileLifecycleEvent;
 import dev.file.clud.node.repository.FileNodeRepository;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpServer;
 
 @Testcontainers
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -35,10 +44,19 @@ class FileApiIntegrationTests {
 
 	private static final Pattern ID_PATTERN = Pattern.compile("\\\"id\\\":\\\"([^\\\"]+)\\\"");
 	private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
+	private static final byte[] STORED_CONTENT = "stored-content".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+	private static final Map<String, byte[]> OBJECTS = new ConcurrentHashMap<>();
+	private static final AtomicInteger DELETE_CALLS = new AtomicInteger();
+	private static final HttpServer STORAGE = startStorage();
 
 	@Container
 	@ServiceConnection
 	static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:17-alpine");
+
+	@DynamicPropertySource
+	static void storageProperties(DynamicPropertyRegistry registry) {
+		registry.add("STORAGE_SERVICE_URL", () -> "http://localhost:" + STORAGE.getAddress().getPort());
+	}
 
 	@LocalServerPort
 	private int port;
@@ -56,6 +74,13 @@ class FileApiIntegrationTests {
 	@BeforeEach
 	void cleanDatabase() {
 		repository.deleteAllInBatch();
+		OBJECTS.clear();
+		DELETE_CALLS.set(0);
+	}
+
+	@AfterAll
+	static void stopStorage() {
+		STORAGE.stop(0);
 	}
 
 	@Test
@@ -145,6 +170,42 @@ class FileApiIntegrationTests {
 						&& event.eventVersion() == 1));
 	}
 
+	@Test
+	void downloadsByFileIdAndKeepsObjectWhileFileIsInTrash() throws Exception {
+		UUID ownerId = UUID.randomUUID();
+		UUID fileId = createFile(ownerId, "photo.png", null);
+
+		HttpResponse<String> download = request("GET", "/files/" + fileId + "/content", ownerId, null);
+		assertThat(download.statusCode()).isEqualTo(200);
+		assertThat(download.body()).isEqualTo("stored-content");
+		assertThat(download.headers().firstValue("Content-Disposition")).hasValueSatisfying(
+				value -> assertThat(value).contains("attachment", "photo.png"));
+		assertThat(request(
+				"GET",
+				"/files/" + fileId + "/content",
+				UUID.randomUUID(),
+				null).statusCode()).isEqualTo(404);
+
+		assertThat(request("DELETE", "/nodes/" + fileId, ownerId, null).statusCode()).isEqualTo(204);
+		assertThat(request("GET", "/files/" + fileId + "/content", ownerId, null).statusCode()).isEqualTo(404);
+		assertThat(OBJECTS).hasSize(1);
+		assertThat(DELETE_CALLS).hasValue(0);
+
+		assertThat(request("POST", "/trash/" + fileId + "/restore", ownerId, "{}").statusCode()).isEqualTo(200);
+		assertThat(request("GET", "/files/" + fileId + "/content", ownerId, null).statusCode()).isEqualTo(200);
+	}
+
+	@Test
+	void removesStoredObjectWhenMetadataPersistenceFails() throws Exception {
+		UUID ownerId = UUID.randomUUID();
+
+		HttpResponse<String> response = uploadFile(ownerId, "broken.bin", null);
+
+		assertThat(response.statusCode()).isEqualTo(409);
+		assertThat(OBJECTS).isEmpty();
+		assertThat(DELETE_CALLS).hasValue(1);
+	}
+
 	private UUID createFolder(UUID ownerId, String name, UUID parentId) throws Exception {
 		String parent = parentId == null ? "" : ",\"parentId\":\"" + parentId + "\"";
 		HttpResponse<String> response = request(
@@ -157,16 +218,74 @@ class FileApiIntegrationTests {
 	}
 
 	private UUID createFile(UUID ownerId, String name, UUID parentId) throws Exception {
-		String parent = parentId == null ? "" : ",\"parentId\":\"" + parentId + "\"";
-		HttpResponse<String> response = request(
-				"POST",
-				"/files",
-				ownerId,
-				"{\"name\":\"" + name + "\"" + parent
-						+ ",\"storageKey\":\"objects/" + UUID.randomUUID() + "\""
-						+ ",\"contentType\":\"application/octet-stream\",\"sizeBytes\":128}");
+		HttpResponse<String> response = uploadFile(ownerId, name, parentId);
 		assertThat(response.statusCode()).isEqualTo(201);
+		assertThat(response.body()).doesNotContain("storageKey");
 		return extractId(response.body());
+	}
+
+	private HttpResponse<String> uploadFile(UUID ownerId, String name, UUID parentId) throws Exception {
+		String boundary = "clud-" + UUID.randomUUID();
+		String body = "--" + boundary + "\r\n"
+				+ "Content-Disposition: form-data; name=\"file\"; filename=\"" + name + "\"\r\n"
+				+ "Content-Type: application/octet-stream\r\n\r\n"
+				+ "uploaded-content\r\n"
+				+ "--" + boundary + "--\r\n";
+		String path = "/files" + (parentId == null ? "" : "?parentId=" + parentId);
+		HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
+				.header("X-User-ID", ownerId.toString())
+				.header("Content-Type", "multipart/form-data; boundary=" + boundary)
+				.POST(HttpRequest.BodyPublishers.ofString(body))
+				.build();
+		return HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+	}
+
+	private static HttpServer startStorage() {
+		try {
+			HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
+			server.createContext("/objects", FileApiIntegrationTests::handleStorage);
+			server.start();
+			return server;
+		}
+		catch (IOException exception) {
+			throw new IllegalStateException("Could not start fake Storage Service", exception);
+		}
+	}
+
+	private static void handleStorage(HttpExchange exchange) throws IOException {
+		String method = exchange.getRequestMethod();
+		String path = exchange.getRequestURI().getPath();
+		if ("POST".equals(method) && "/objects".equals(path)) {
+			String upload = new String(
+					exchange.getRequestBody().readAllBytes(),
+					java.nio.charset.StandardCharsets.UTF_8);
+			String storageKey = UUID.randomUUID().toString();
+			OBJECTS.put(storageKey, STORED_CONTENT);
+			long storedSize = upload.contains("broken.bin") ? -1 : STORED_CONTENT.length;
+			byte[] response = ("{\"storageKey\":\"" + storageKey
+					+ "\",\"contentType\":\"application/octet-stream\",\"sizeBytes\":"
+					+ storedSize + "}").getBytes(java.nio.charset.StandardCharsets.UTF_8);
+			exchange.getResponseHeaders().set("Content-Type", "application/json");
+			exchange.sendResponseHeaders(201, response.length);
+			exchange.getResponseBody().write(response);
+		}
+		else {
+			String storageKey = path.substring(path.lastIndexOf('/') + 1);
+			if ("GET".equals(method) && OBJECTS.containsKey(storageKey)) {
+				byte[] response = OBJECTS.get(storageKey);
+				exchange.getResponseHeaders().set("Content-Type", "application/octet-stream");
+				exchange.sendResponseHeaders(200, response.length);
+				exchange.getResponseBody().write(response);
+			}
+			else if ("DELETE".equals(method) && OBJECTS.remove(storageKey) != null) {
+				DELETE_CALLS.incrementAndGet();
+				exchange.sendResponseHeaders(204, -1);
+			}
+			else {
+				exchange.sendResponseHeaders(404, -1);
+			}
+		}
+		exchange.close();
 	}
 
 	private HttpResponse<String> request(String method, String path, UUID ownerId, String body)

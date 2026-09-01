@@ -10,8 +10,7 @@ infrastructure needed to run the complete system.
 Client -> Nginx -> Gateway
                     |
                     +-> Identity
-                    +-> File
-                    +-> Storage
+                    +-> File -> Storage -> MinIO
                     +-> Sharing
                               |
              PostgreSQL / Redis / Kafka / MinIO
@@ -60,7 +59,7 @@ precedence over values from `.env`. All `.env` files are ignored by Git.
 | Variable group | Purpose |
 | --- | --- |
 | `NGINX_PORT`, `*_PORT` | Ports published from containers to the host |
-| `*_SERVICE_URL` | Addresses used by Gateway inside the Compose network |
+| `*_SERVICE_URL` | Internal service addresses inside the Compose network |
 | `POSTGRES_*` | PostgreSQL database, credentials, and host port |
 | `REDIS_PORT` | Redis host port |
 | `MINIO_*` | MinIO credentials and API/console ports |
@@ -140,9 +139,10 @@ FILE_SERVICE_URL=http://host.docker.internal:8082 \
   docker compose up -d gateway nginx
 ```
 
-The same approach works for Identity, Storage, or Sharing by replacing the
-corresponding service URL. Compose maps `host.docker.internal` to the Linux
-host for Gateway.
+The same approach works for Identity or Sharing by replacing the corresponding
+Gateway service URL. For a locally running Storage service, point File Service
+at `http://host.docker.internal:8083`. Compose maps
+`host.docker.internal` to the Linux host.
 
 ## Local ports
 
@@ -173,7 +173,6 @@ Kafka has separate addresses:
 | --- | --- |
 | `/api/identity/**` | Identity |
 | `/api/files/**` | File |
-| `/api/storage/**` | Storage |
 | `/api/sharing/**` | Sharing |
 
 Gateway removes the first two path segments before forwarding a request. It
@@ -192,8 +191,8 @@ Identity owns registration, login, refresh-token rotation, logout, and the curre
 
 The File Service persists files and folders in the `file_service` PostgreSQL
 schema. It supports directory browsing, rename, move, recursive trash, restore,
-and versioned Kafka lifecycle events. File bytes remain owned by the future
-Storage Service.
+and versioned Kafka lifecycle events. It orchestrates binary uploads and
+downloads through internal Storage Service UUID keys; clients use only `fileId`.
 
 Business requests receive a trusted `X-User-ID` UUID from Gateway after access
 token validation. Client-provided values are removed before routing. See

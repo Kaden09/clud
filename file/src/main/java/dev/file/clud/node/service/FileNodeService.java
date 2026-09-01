@@ -17,7 +17,6 @@ import dev.file.clud.error.InvalidNodeOperationException;
 import dev.file.clud.error.NodeConflictException;
 import dev.file.clud.error.NodeNotFoundException;
 import dev.file.clud.event.FileLifecycleEvent;
-import dev.file.clud.node.dto.request.CreateFileRequest;
 import dev.file.clud.node.dto.request.CreateFolderRequest;
 import dev.file.clud.node.dto.request.RenameNodeRequest;
 import dev.file.clud.node.entity.FileNode;
@@ -37,17 +36,29 @@ public class FileNodeService {
 		return repository.save(FileNode.folder(ownerId, parent, request.name()));
 	}
 
+	@Transactional(readOnly = true)
+	public void validateUploadTarget(UUID ownerId, UUID parentId, String name) {
+		resolveActiveFolder(ownerId, parentId);
+		ensureNameAvailable(ownerId, parentId, name);
+	}
+
 	@Transactional
-	public FileNode createFile(UUID ownerId, CreateFileRequest request) {
-		FileNode parent = resolveActiveFolder(ownerId, request.parentId());
-		ensureNameAvailable(ownerId, request.parentId(), request.name());
-		FileNode file = repository.save(FileNode.file(
+	public FileNode createStoredFile(
+			UUID ownerId,
+			UUID parentId,
+			String name,
+			String storageKey,
+			String contentType,
+			long sizeBytes) {
+		FileNode parent = resolveActiveFolder(ownerId, parentId);
+		ensureNameAvailable(ownerId, parentId, name);
+		FileNode file = repository.saveAndFlush(FileNode.file(
 				ownerId,
 				parent,
-				request.name(),
-				request.storageKey(),
-				request.contentType(),
-				request.sizeBytes()));
+				name,
+				storageKey,
+				contentType,
+				sizeBytes));
 		eventPublisher.publishEvent(FileLifecycleEvent.uploaded(file));
 		return file;
 	}
@@ -55,6 +66,15 @@ public class FileNodeService {
 	@Transactional(readOnly = true)
 	public FileNode get(UUID ownerId, UUID nodeId) {
 		return getActive(ownerId, nodeId);
+	}
+
+	@Transactional(readOnly = true)
+	public FileNode getActiveFile(UUID ownerId, UUID nodeId) {
+		FileNode node = getActive(ownerId, nodeId);
+		if (node.isFolder()) {
+			throw new InvalidNodeOperationException("Folder content cannot be downloaded");
+		}
+		return node;
 	}
 
 	@Transactional(readOnly = true)

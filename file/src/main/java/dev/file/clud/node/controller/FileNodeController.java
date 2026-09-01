@@ -1,8 +1,11 @@
 package dev.file.clud.node.controller;
 
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
+import dev.file.clud.content.FileContentService;
+import dev.file.clud.content.FileDownload;
 import dev.file.clud.node.mapper.NodeMapper;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -13,6 +16,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.InvalidMediaTypeException;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -23,9 +30,10 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import org.springframework.validation.annotation.Validated;
 
-import dev.file.clud.node.dto.request.CreateFileRequest;
 import dev.file.clud.node.dto.request.CreateFolderRequest;
 import dev.file.clud.node.dto.request.RenameNodeRequest;
 import dev.file.clud.node.dto.response.NodeResponse;
@@ -42,6 +50,7 @@ public class FileNodeController {
 	private static final String USER_ID_HEADER = "X-User-ID";
 
 	private final FileNodeService service;
+	private final FileContentService contentService;
 	private final NodeMapper mapper;
 
 	@PostMapping("/folders")
@@ -57,11 +66,28 @@ public class FileNodeController {
 	@PostMapping("/files")
 	ResponseEntity<NodeResponse> createFile(
 			@RequestHeader(USER_ID_HEADER) UUID ownerId,
-			@Valid @RequestBody CreateFileRequest request) {
-		log.info("Creating file for ownerId={}, name={}", ownerId, request.name());
+			@RequestParam("file") MultipartFile file,
+			@RequestParam(required = false) UUID parentId) {
+		log.info("Uploading file for ownerId={}, name={}", ownerId, file.getOriginalFilename());
 
-		NodeResponse response = mapper.toResponse(service.createFile(ownerId, request));
+		NodeResponse response = mapper.toResponse(contentService.upload(ownerId, parentId, file));
 		return ResponseEntity.created(URI.create("/nodes/" + response.id())).body(response);
+	}
+
+	@GetMapping("/files/{fileId}/content")
+	ResponseEntity<StreamingResponseBody> downloadFile(
+			@RequestHeader(USER_ID_HEADER) UUID ownerId,
+			@PathVariable UUID fileId) {
+		FileDownload file = contentService.getDownload(ownerId, fileId);
+		StreamingResponseBody body = output -> contentService.copyTo(file.storageKey(), output);
+		return ResponseEntity.ok()
+				.contentType(mediaType(file.contentType()))
+				.contentLength(file.sizeBytes())
+				.header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+						.filename(file.name(), StandardCharsets.UTF_8)
+						.build()
+						.toString())
+				.body(body);
 	}
 
 	@GetMapping("/nodes/{nodeId}")
@@ -134,5 +160,17 @@ public class FileNodeController {
 		log.info("Restoring node from trash: nodeId={}, ownerId={}", nodeId, ownerId);
 
 		return mapper.toResponse(service.restore(ownerId, nodeId));
+	}
+
+	private MediaType mediaType(String contentType) {
+		if (contentType == null || contentType.isBlank()) {
+			return MediaType.APPLICATION_OCTET_STREAM;
+		}
+		try {
+			return MediaType.parseMediaType(contentType);
+		}
+		catch (InvalidMediaTypeException exception) {
+			return MediaType.APPLICATION_OCTET_STREAM;
+		}
 	}
 }

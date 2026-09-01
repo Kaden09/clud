@@ -1,7 +1,7 @@
 # Gateway
 
 Gateway is the public API entry point for Clud. It authenticates bearer access
-tokens, routes requests to Identity, File, Storage, and Sharing, propagates an
+tokens, routes requests to Identity, File, and Sharing, propagates an
 `X-Request-ID`, and supplies downstream services with a trusted `X-User-ID`.
 
 ## Environment variables
@@ -14,7 +14,6 @@ tokens, routes requests to Identity, File, Storage, and Sharing, propagates an
 | `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka address reachable from the local JVM |
 | `IDENTITY_SERVICE_URL` | `http://localhost:8081` | Identity base URL |
 | `FILE_SERVICE_URL` | `http://localhost:8082` | File base URL |
-| `STORAGE_SERVICE_URL` | `http://localhost:8083` | Storage base URL |
 | `SHARING_SERVICE_URL` | `http://localhost:8084` | Sharing base URL |
 
 Real environment variables override values from `.env`. The local `.env` file is ignored by Git and must not contain committed credentials.
@@ -35,6 +34,9 @@ The following paths are public:
 All other `/api/**` requests require `Authorization: Bearer <access-token>`.
 Refresh tokens and tokens with invalid signatures, subjects, or expiration are
 rejected with a structured `401` response.
+
+Storage has no public Gateway route. Clients upload and download binary content
+through File Service endpoints, and internal File metadata routes are denied.
 
 ## Local startup
 

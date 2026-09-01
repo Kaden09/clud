@@ -17,7 +17,6 @@ public class NodeMapper {
                 node.getParent() == null ? null : node.getParent().getId(),
                 node.getType(),
                 node.getName(),
-                node.getStorageKey(),
                 node.getContentType(),
                 node.getSizeBytes(),
                 node.getDeletedAt(),

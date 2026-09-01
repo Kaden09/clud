@@ -22,9 +22,18 @@ import java.util.Map;
 public class ApiExceptionHandler {
 	@ExceptionHandler(NotFoundException.class)
 	ResponseEntity<ApiError> handleNotFound(NotFoundException exception, HttpServletRequest request) {
-		log.warn("Bucket not found: uri={}, message={}", request.getRequestURI(), exception.getMessage());
+		log.warn("Object not found: uri={}, message={}", request.getRequestURI(), exception.getMessage());
 
-		return error(HttpStatus.NOT_FOUND, "BUCKET_NOT_FOUND", exception.getMessage(), request, Map.of());
+		return error(HttpStatus.NOT_FOUND, "OBJECT_NOT_FOUND", exception.getMessage(), request, Map.of());
+	}
+
+	@ExceptionHandler(InvalidStorageObjectException.class)
+	ResponseEntity<ApiError> handleInvalidObject(
+			InvalidStorageObjectException exception,
+			HttpServletRequest request) {
+		log.warn("Invalid storage object: uri={}, message={}", request.getRequestURI(), exception.getMessage());
+
+		return error(HttpStatus.BAD_REQUEST, "INVALID_STORAGE_OBJECT", exception.getMessage(), request, Map.of());
 	}
 
 	@ExceptionHandler(StorageException.class)

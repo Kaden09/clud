@@ -3,19 +3,14 @@ package dev.gateway.clud.security.handler;
 import java.io.IOException;
 import java.time.Instant;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 
 @Component
-@RequiredArgsConstructor
 public class SecurityErrorResponseWriter {
-
-    private final ObjectMapper objectMapper;
 
     public void write(
             HttpServletRequest request,
@@ -25,11 +20,17 @@ public class SecurityErrorResponseWriter {
             String message) throws IOException {
         response.setStatus(status);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        objectMapper.writeValue(response.getOutputStream(), new SecurityApiError(
-                Instant.now(),
-                status,
-                code,
-                message,
-                request.getRequestURI()));
+        response.getWriter().write(
+                "{\"timestamp\":\"%s\",\"status\":%d,\"code\":\"%s\",\"message\":\"%s\",\"path\":\"%s\"}"
+                        .formatted(
+                                Instant.now(),
+                                status,
+                                escape(code),
+                                escape(message),
+                                escape(request.getRequestURI())));
+    }
+
+    private String escape(String value) {
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }

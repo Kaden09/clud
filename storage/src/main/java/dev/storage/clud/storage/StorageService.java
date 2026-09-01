@@ -55,6 +55,25 @@ public class StorageService {
     }
 
     public StorageObjectResource download(String storageKey) {
+        StoredObjectMetadata metadata = metadata(storageKey);
+        try {
+            return new StorageObjectResource(
+                    new InputStreamResource(minioClient.getObject(GetObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(storageKey)
+                            .build())),
+                    metadata.contentType(),
+                    metadata.sizeBytes());
+        }
+        catch (ErrorResponseException exception) {
+            throw mapMinioError(storageKey, exception);
+        }
+        catch (Exception exception) {
+            throw new StorageException("Failed to download object: " + storageKey, exception);
+        }
+    }
+
+    public StoredObjectMetadata metadata(String storageKey) {
         validateStorageKey(storageKey);
         try {
             StatObjectResponse metadata = minioClient.statObject(StatObjectArgs.builder()
@@ -64,19 +83,13 @@ public class StorageService {
             String contentType = metadata.contentType() == null || metadata.contentType().isBlank()
                     ? MediaType.APPLICATION_OCTET_STREAM_VALUE
                     : metadata.contentType();
-            return new StorageObjectResource(
-                    new InputStreamResource(minioClient.getObject(GetObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(storageKey)
-                            .build())),
-                    MediaType.parseMediaType(contentType),
-                    metadata.size());
+            return new StoredObjectMetadata(MediaType.parseMediaType(contentType), metadata.size());
         }
         catch (ErrorResponseException exception) {
             throw mapMinioError(storageKey, exception);
         }
         catch (Exception exception) {
-            throw new StorageException("Failed to download object: " + storageKey, exception);
+            throw new StorageException("Failed to read object metadata: " + storageKey, exception);
         }
     }
 

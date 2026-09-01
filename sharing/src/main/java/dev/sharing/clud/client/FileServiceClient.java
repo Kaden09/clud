@@ -2,7 +2,7 @@ package dev.sharing.clud.client;
 
 import java.util.UUID;
 
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
@@ -14,12 +14,15 @@ import dev.sharing.clud.error.SharedFileNotFoundException;
 import dev.sharing.clud.error.UpstreamServiceException;
 
 @Component
-@RequiredArgsConstructor
 public class FileServiceClient {
 
 	private static final String USER_ID_HEADER = "X-User-ID";
 
 	private final RestClient fileServiceRestClient;
+
+	public FileServiceClient(@Qualifier("fileServiceRestClient") RestClient fileServiceRestClient) {
+		this.fileServiceRestClient = fileServiceRestClient;
+	}
 
 	public FileNodeResponse getActiveFile(UUID ownerId, UUID fileId) {
 		try {

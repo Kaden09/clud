@@ -4,11 +4,9 @@ The Sharing Service owns public links for Clud files. It creates one active
 link per owner and file, supports optional expiration and revocation, and
 publishes the versioned `FileShared` event.
 
-Public links currently validate completely but return `501 Not Implemented`
-when the download reaches the Storage boundary. The placeholder is intentional:
-Storage Service does not yet expose the stable internal streaming contract that
-Sharing needs. Sharing never accesses MinIO directly and never exposes a
-`storageKey` to public callers.
+Public links expose file metadata, safe inline preview, and explicit download.
+Sharing streams bytes from Storage Service by an opaque internal key; it never
+accesses MinIO directly and never exposes `storageKey` to public callers.
 
 ## Environment variables
 
@@ -19,9 +17,11 @@ Sharing needs. Sharing never accesses MinIO directly and never exposes a
 | `SHARING_DATABASE_USERNAME` | `clud` | PostgreSQL username |
 | `SHARING_DATABASE_PASSWORD` | `clud` | PostgreSQL password |
 | `FILE_SERVICE_URL` | `http://localhost:8082` | Internal File Service address |
-| `STORAGE_SERVICE_URL` | `http://localhost:8083` | Reserved internal Storage Service address |
+| `STORAGE_SERVICE_URL` | `http://localhost:8083` | Internal Storage Service address |
 | `SHARING_HTTP_CONNECT_TIMEOUT` | `2s` | File Service connection timeout |
 | `SHARING_HTTP_READ_TIMEOUT` | `5s` | File Service response timeout |
+| `SHARING_STORAGE_HTTP_CONNECT_TIMEOUT` | `2s` | Storage connection timeout |
+| `SHARING_STORAGE_HTTP_READ_TIMEOUT` | `30s` | Storage streaming read timeout |
 | `SHARING_PUBLIC_BASE_URL` | `http://localhost:8084/public` | Prefix returned with a newly created token |
 | `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka address reachable from the local JVM |
 | `FILE_EVENTS_TOPIC` | `file.events.v1` | File lifecycle input topic |
@@ -47,9 +47,8 @@ Run the integration tests with Docker available:
 
 ## Ownership contract
 
-Management endpoints require `X-User-ID` with a UUID value. This matches the
-temporary File Service contract. In the completed architecture, only the
-authenticated Gateway may create this header.
+Management endpoints receive the trusted `X-User-ID` UUID from the
+authenticated Gateway. Public endpoints require only the unguessable token.
 
 Sharing calls File Service before creating a link and before attempting a
 public download. The file must exist, belong to the stored owner, be active,
@@ -64,7 +63,9 @@ The Gateway removes `/api/sharing` before forwarding requests.
 | `POST` | `/api/sharing/links` | Create or rotate the active link for a file |
 | `GET` | `/api/sharing/links?fileId={fileId}` | Read active link metadata |
 | `DELETE` | `/api/sharing/links/{linkId}` | Revoke a link |
-| `GET` | `/api/sharing/public/{token}` | Validate a public link and eventually stream its file |
+| `GET` | `/api/sharing/public/{token}` | Read public file metadata and action URLs |
+| `GET` | `/api/sharing/public/{token}/preview` | Stream a safe preview with inline disposition |
+| `GET` | `/api/sharing/public/{token}/download` | Stream the file with attachment disposition |
 
 Create a link:
 
@@ -108,10 +109,9 @@ http://localhost:8084/docs
 
 The OpenAPI document is available at `/v3/api-docs`.
 
-## Pending Storage integration
+## Preview policy
 
-`PendingStorageDownloadGateway` is the only intentional download stub. Replace
-it after Storage defines an internal endpoint that accepts an opaque
-`storageKey` and streams bytes with content type, length, and disposition.
-Until then, a valid `/public/{token}` request returns the structured error code
-`STORAGE_INTEGRATION_PENDING` with HTTP status `501`.
+Inline preview is limited to PDF, JSON, plain text, CSV, common raster images,
+audio, and video. Active document formats such as HTML, SVG, and XML return
+`415 PREVIEW_NOT_SUPPORTED`; they can still be downloaded. Preview responses
+use `nosniff`, a sandbox Content Security Policy, and `Cache-Control: no-store`.

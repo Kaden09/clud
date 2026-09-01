@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -34,6 +35,15 @@ public class StorageController {
                 .contentType(object.contentType())
                 .contentLength(object.sizeBytes())
                 .body(object.resource());
+    }
+
+    @RequestMapping(value = "/{storageKey}", method = RequestMethod.HEAD)
+    ResponseEntity<Void> metadata(@PathVariable String storageKey) {
+        StoredObjectMetadata object = service.metadata(storageKey);
+        return ResponseEntity.ok()
+                .contentType(object.contentType())
+                .contentLength(object.sizeBytes())
+                .build();
     }
 
     @DeleteMapping("/{storageKey}")

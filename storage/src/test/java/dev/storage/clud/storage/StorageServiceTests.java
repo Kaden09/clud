@@ -13,6 +13,7 @@ import java.util.UUID;
 import dev.storage.clud.exception.InvalidStorageObjectException;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import io.minio.StatObjectResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -71,6 +72,21 @@ class StorageServiceTests {
         assertThatThrownBy(() -> service.download("report.pdf"))
                 .isInstanceOf(InvalidStorageObjectException.class)
                 .hasMessage("Storage key must be a canonical UUID");
+    }
+
+    @Test
+    void readsObjectMetadataWithoutOpeningADownloadStream() throws Exception {
+        String storageKey = UUID.randomUUID().toString();
+        StatObjectResponse response = org.mockito.Mockito.mock(StatObjectResponse.class);
+        when(response.contentType()).thenReturn("application/pdf");
+        when(response.size()).thenReturn(42L);
+        when(minioClient.statObject(any())).thenReturn(response);
+
+        StoredObjectMetadata metadata = service.metadata(storageKey);
+
+        assertThat(metadata.contentType().toString()).isEqualTo("application/pdf");
+        assertThat(metadata.sizeBytes()).isEqualTo(42L);
+        verify(minioClient).statObject(any());
     }
 
     private MockMultipartFile file(String name, String content) {

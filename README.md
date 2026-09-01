@@ -206,10 +206,11 @@ The Sharing Service persists one active public link per owner and file in the
 through File Service, supports optional expiration and revocation, publishes
 `FileShared`, and consumes `FileDeleted` to revoke links.
 
-Public download currently stops at a documented Storage Service boundary and
-returns `501 STORAGE_INTEGRATION_PENDING` after the token and file are fully
-validated. See [the Sharing Service documentation](sharing/README.md) for the
-API, token storage, events, and pending download contract.
+The public token resolves to safe metadata first. Separate preview and download
+endpoints stream bytes from Storage without exposing the internal object key;
+active formats such as HTML and SVG are download-only. See
+[the Sharing Service documentation](sharing/README.md) for the API, preview
+policy, token storage, and events.
 
 ## Testing
 

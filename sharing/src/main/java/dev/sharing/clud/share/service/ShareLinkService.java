@@ -18,9 +18,11 @@ import dev.sharing.clud.event.FileSharedEvent;
 import dev.sharing.clud.share.dto.CreateShareLinkRequest;
 import dev.sharing.clud.share.dto.CreatedShareLinkResponse;
 import dev.sharing.clud.share.dto.ShareLinkResponse;
+import dev.sharing.clud.share.dto.PublicFileMetadataResponse;
 import dev.sharing.clud.share.entity.ShareLink;
 import dev.sharing.clud.share.repository.ShareLinkRepository;
 import dev.sharing.clud.storage.PublicShareFile;
+import dev.sharing.clud.storage.PreviewPolicy;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +33,7 @@ public class ShareLinkService {
 	private final FileServiceClient fileServiceClient;
 	private final ApplicationEventPublisher eventPublisher;
 	private final TransactionTemplate transactionTemplate;
+	private final PreviewPolicy previewPolicy;
 
 	@Value("${clud.sharing.public-base-url}")
 	private String publicBaseUrl;
@@ -74,7 +77,21 @@ public class ShareLinkService {
 		link.revoke(Instant.now());
 	}
 
-	public PublicShareFile resolveForDownload(String rawToken) {
+	public PublicFileMetadataResponse getPublicMetadata(String rawToken) {
+		PublicShareFile file = resolveForAccess(rawToken);
+		String publicUrl = publicUrl(rawToken);
+		return new PublicFileMetadataResponse(
+				file.fileId(),
+				file.name(),
+				file.contentType(),
+				file.sizeBytes(),
+				previewPolicy.supports(file.contentType()),
+				publicUrl + "/preview",
+				publicUrl + "/download",
+				file.expiresAt());
+	}
+
+	public PublicShareFile resolveForAccess(String rawToken) {
 		ShareLink link = repository.findByTokenHashAndRevokedAtIsNull(tokenService.hash(rawToken))
 				.orElseThrow(ShareLinkNotFoundException::new);
 		if (link.isExpired(Instant.now())) {
@@ -87,7 +104,8 @@ public class ShareLinkService {
 				file.storageKey(),
 				file.name(),
 				file.contentType(),
-				file.sizeBytes());
+				file.sizeBytes(),
+				link.getExpiresAt());
 	}
 
 	@Transactional

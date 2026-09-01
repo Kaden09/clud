@@ -31,10 +31,11 @@ Run its test suite with:
 ./mvnw test
 ```
 
-The internal contract is `POST /objects`, `GET /objects/{storageKey}`, and
-`DELETE /objects/{storageKey}`. The delete operation is reserved for upload
-compensation and future permanent cleanup; normal trash operations do not call
-it.
+The internal contract is `POST /objects`, `HEAD /objects/{storageKey}`,
+`GET /objects/{storageKey}`, and `DELETE /objects/{storageKey}`. `HEAD` checks
+existence and returns `Content-Type` and `Content-Length` without opening the
+object stream. The delete operation is reserved for upload compensation and
+future permanent cleanup; normal trash operations do not call it.
 
 The example port matches the port published for this service by Docker
 Compose. To use this local service from a Dockerized File Service, set

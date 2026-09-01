@@ -40,11 +40,11 @@ public class ApiExceptionHandler {
 		return error(HttpStatus.BAD_REQUEST, "INVALID_SHARE_OPERATION", exception.getMessage(), request, Map.of());
 	}
 
-	@ExceptionHandler(StorageIntegrationPendingException.class)
-	ResponseEntity<ApiError> handlePendingStorage(
-			StorageIntegrationPendingException exception,
+	@ExceptionHandler(PreviewNotSupportedException.class)
+	ResponseEntity<ApiError> handlePreviewNotSupported(
+			PreviewNotSupportedException exception,
 			HttpServletRequest request) {
-		return error(HttpStatus.NOT_IMPLEMENTED, "STORAGE_INTEGRATION_PENDING", exception.getMessage(), request, Map.of());
+		return error(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "PREVIEW_NOT_SUPPORTED", exception.getMessage(), request, Map.of());
 	}
 
 	@ExceptionHandler(UpstreamServiceException.class)

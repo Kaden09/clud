@@ -17,6 +17,18 @@ public class HttpClientConfiguration {
 			@Value("${clud.sharing.file-service-url}") String baseUrl,
 			@Value("${clud.sharing.http.connect-timeout:2s}") Duration connectTimeout,
 			@Value("${clud.sharing.http.read-timeout:5s}") Duration readTimeout) {
+		return restClient(baseUrl, connectTimeout, readTimeout);
+	}
+
+	@Bean
+	RestClient storageServiceRestClient(
+			@Value("${clud.sharing.storage-service-url}") String baseUrl,
+			@Value("${clud.sharing.storage-http.connect-timeout:2s}") Duration connectTimeout,
+			@Value("${clud.sharing.storage-http.read-timeout:30s}") Duration readTimeout) {
+		return restClient(baseUrl, connectTimeout, readTimeout);
+	}
+
+	private RestClient restClient(String baseUrl, Duration connectTimeout, Duration readTimeout) {
 		HttpClient httpClient = HttpClient.newBuilder()
 				.connectTimeout(connectTimeout)
 				.build();

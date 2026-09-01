@@ -36,6 +36,13 @@ spring:
       group-id: ${spring.application.name}
       auto-offset-reset: earliest
 
+jwt:
+  secret: ${JWT_SECRET}
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
 management:
   endpoints:
     web:

@@ -53,12 +53,14 @@ cp file/.env.example file/.env
 Every service has its own `.env.example` and README with the supported
 variables. Quoted dotenv values are supported. Real environment variables take
 precedence over values from `.env`. All `.env` files are ignored by Git.
+When starting a service from an IDE, set its service directory as the working
+directory so that the matching local `.env` file is loaded.
 
 ### Root variables
 
 | Variable group | Purpose |
 | --- | --- |
-| `NGINX_PORT`, `*_PORT` | Ports published from containers to the host |
+| `NGINX_HOST_PORT`, `*_HOST_PORT` | Ports published from containers to the host |
 | `*_SERVICE_URL` | Internal service addresses inside the Compose network |
 | `POSTGRES_*` | PostgreSQL database, credentials, and host port |
 | `REDIS_PORT` | Redis host port |

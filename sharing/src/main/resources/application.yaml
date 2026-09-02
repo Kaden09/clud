@@ -5,9 +5,9 @@ spring:
   application:
     name: sharing
   datasource:
-    url: ${SHARING_DATABASE_URL:jdbc:postgresql://localhost:5432/clud}
-    username: ${SHARING_DATABASE_USERNAME:clud}
-    password: ${SHARING_DATABASE_PASSWORD:clud}
+    url: ${SHARING_DATABASE_URL}
+    username: ${SHARING_DATABASE_USERNAME}
+    password: ${SHARING_DATABASE_PASSWORD}
   flyway:
     create-schemas: true
     default-schema: sharing_service

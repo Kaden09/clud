@@ -1,17 +1,36 @@
 # Maven
 target/
-
-# IntelliJ IDEA
-.idea/
-*.iml
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
 
 # Java
 *.class
+hs_err_pid*
+replay_pid*
 
-# Logs
-*.log
+# IDE
+.idea/
+.vscode/
+.classpath
+.project
+.settings/
+.factorypath
+*.iml
 
 # Environment variables
 .env
 .env.*
 !.env.example
+
+# Logs
+*.log
+logs/
+
+# Operating system
+.DS_Store
+Thumbs.db

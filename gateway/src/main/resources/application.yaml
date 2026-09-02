@@ -40,6 +40,21 @@ app:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
 
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /docs
+    urls:
+      - name: Gateway
+        url: /v3/api-docs
+      - name: Identity
+        url: /api/identity/v3/api-docs
+      - name: File
+        url: /api/files/v3/api-docs
+      - name: Sharing
+        url: /api/sharing/v3/api-docs
+
 management:
   endpoints:
     web:

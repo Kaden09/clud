@@ -1,4 +1,4 @@
-package dev.storage.clud.config;
+package dev.file.clud.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
@@ -9,10 +9,10 @@ import org.springframework.context.annotation.Configuration;
 public class OpenApiConfig {
 
     @Bean
-    OpenAPI storageOpenApi() {
+    OpenAPI fileOpenApi() {
         return new OpenAPI().info(new Info()
-                .title("Clud Storage Service API")
+                .title("Clud File Service API")
                 .version("v1")
-                .description("Internal binary object storage backed by MinIO."));
+                .description("File metadata, directory hierarchy and storage orchestration."));
     }
 }

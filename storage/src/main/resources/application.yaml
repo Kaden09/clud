@@ -17,6 +17,12 @@ minio:
   bucket:
     name: clud-files
 
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /docs
+
 management:
   endpoints:
     web:

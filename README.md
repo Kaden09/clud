@@ -169,6 +169,23 @@ Kafka has separate addresses:
 - containers connect to `kafka:29092`;
 - applications running on the host connect to `localhost:9092`.
 
+## OpenAPI
+
+Every service exposes Swagger UI at `/docs` and its OpenAPI document at
+`/v3/api-docs`.
+
+| Service | Swagger UI | OpenAPI document |
+| --- | --- | --- |
+| Gateway | `http://localhost:8080/docs` | `http://localhost:8080/v3/api-docs` |
+| Identity | `http://localhost:8081/docs` | `http://localhost:8081/v3/api-docs` |
+| File | `http://localhost:8082/docs` | `http://localhost:8082/v3/api-docs` |
+| Storage | `http://localhost:8083/docs` | `http://localhost:8083/v3/api-docs` |
+| Sharing | `http://localhost:8084/docs` | `http://localhost:8084/v3/api-docs` |
+
+Gateway Swagger UI also lists the routed Identity, File, and Sharing
+specifications. Storage remains internal and is intentionally not routed through
+Gateway.
+
 ## Gateway routes
 
 | Public path | Destination |

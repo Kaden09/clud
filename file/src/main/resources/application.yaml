@@ -33,6 +33,12 @@ clud:
       connect-timeout: ${FILE_STORAGE_HTTP_CONNECT_TIMEOUT:2s}
       read-timeout: ${FILE_STORAGE_HTTP_READ_TIMEOUT:30s}
 
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /docs
+
 management:
   endpoints:
     web:

@@ -57,6 +57,12 @@ public class GatewaySecurityConfig {
                         .requestMatchers(
                                 "/api/identity/auth/**",
                                 "/api/sharing/public/**",
+                                "/api/identity/v3/api-docs/**",
+                                "/api/files/v3/api-docs/**",
+                                "/api/sharing/v3/api-docs/**",
+                                "/v3/api-docs/**",
+                                "/docs/**",
+                                "/swagger-ui/**",
                                 "/actuator/health/**").permitAll()
                         .requestMatchers("/api/files/internal/**").denyAll()
                         .requestMatchers("/api/**").authenticated()

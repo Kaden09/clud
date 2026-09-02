@@ -44,6 +44,8 @@ clud:
     events-topic: ${IDENTITY_EVENTS_TOPIC:identity.events.v1}
 
 springdoc:
+  api-docs:
+    path: /v3/api-docs
   swagger-ui:
     path: /docs
 

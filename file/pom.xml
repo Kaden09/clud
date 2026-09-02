@@ -24,13 +24,6 @@
 
   <dependencyManagement>
     <dependencies>
-    <dependency>
-      <groupId>me.paulschwarz</groupId>
-      <artifactId>springboot4-dotenv</artifactId>
-      <version>${spring-dotenv.version}</version>
-      <optional>true</optional>
-    </dependency>
-
       <dependency>
         <groupId>org.testcontainers</groupId>
         <artifactId>testcontainers-bom</artifactId>
@@ -42,6 +35,12 @@
   </dependencyManagement>
 
   <dependencies>
+    <dependency>
+      <groupId>me.paulschwarz</groupId>
+      <artifactId>springboot4-dotenv</artifactId>
+      <version>${spring-dotenv.version}</version>
+      <optional>true</optional>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>

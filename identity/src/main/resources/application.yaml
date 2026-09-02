@@ -5,9 +5,9 @@ spring:
   application:
     name: identity
   datasource:
-    url: ${IDENTITY_DATABASE_URL:jdbc:postgresql://localhost:5432/clud}
-    username: ${IDENTITY_DATABASE_USERNAME:clud}
-    password: ${IDENTITY_DATABASE_PASSWORD:clud}
+    url: ${IDENTITY_DATABASE_URL}
+    username: ${IDENTITY_DATABASE_USERNAME}
+    password: ${IDENTITY_DATABASE_PASSWORD}
   flyway:
     create-schemas: true
     default-schema: identity_service

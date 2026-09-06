@@ -73,7 +73,8 @@ Error dispatches may render their original error without being changed to 401.
 
 Gateway continues authenticating `/api/**` before forwarding. An anonymous request inside
 a protected API prefix can therefore receive 401 before the upstream route is examined.
-With valid credentials, an unknown upstream endpoint returns 404. Gateway does not query
+With valid credentials, an unknown upstream endpoint returns 404. Gateway uses a configurable two-second connection timeout (`GATEWAY_HTTP_CONNECT_TIMEOUT`)
+so unreachable services fail promptly. It does not query
 other services to discover their controller mappings.
 
 Gateway forwards completed upstream responses without rewriting their JSON. With prefix

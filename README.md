@@ -324,8 +324,8 @@ Error dispatches may render their original error without being changed to 401.
 
 Gateway continues authenticating `/api/**` before forwarding. An anonymous request inside
 a protected API prefix can therefore receive 401 before the upstream route is examined.
-With valid credentials, an unknown upstream endpoint returns 404. Gateway uses a configurable two-second connection timeout (`GATEWAY_HTTP_CONNECT_TIMEOUT`)
-so unreachable services fail promptly. It does not query
+With valid credentials, an unknown upstream endpoint returns 404. Gateway uses a two-second
+connection timeout so unreachable services fail promptly. It does not query
 other services to discover their controller mappings.
 
 Gateway forwards completed upstream responses without rewriting their JSON. With prefix
@@ -345,8 +345,8 @@ Each application has contract and MVC routing/binding tests. Identity additional
 unknown paths with absent, invalid, and valid tokens plus protected endpoints. Gateway
 tests functional-route connection failures/timeouts and unchanged upstream error bodies.
 
-The Compose smoke job verifies readiness and OpenAPI documents, then checks representative
-`404 / NOT_FOUND` and `401 / UNAUTHORIZED` responses through Nginx. Detailed error
-contract cases remain in the service tests. Gateway integration tests deterministically
+The Compose smoke job starts the complete stack, waits for its health checks, and sends one
+request through Nginx. Detailed error contract cases remain in the service tests. Gateway
+integration tests deterministically
 verify connection failures as `502 / BAD_GATEWAY` and timeouts as
 `504 / GATEWAY_TIMEOUT`.

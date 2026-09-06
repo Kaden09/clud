@@ -6,8 +6,7 @@ spring:
     name: gateway
   http:
     clients:
-      connect-timeout: ${GATEWAY_HTTP_CONNECT_TIMEOUT:2s}
-      read-timeout: ${GATEWAY_HTTP_READ_TIMEOUT:30s}
+      connect-timeout: 2s
   cloud:
     gateway:
       server:

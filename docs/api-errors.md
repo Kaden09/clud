@@ -102,4 +102,5 @@ python3 scripts/check_api_errors.py
 
 The CI smoke job runs this after readiness/OpenAPI checks, then stops and removes Identity from the Compose network and runs
 `python3 scripts/check_api_errors.py --upstream-down` to verify actual Gateway and Nginx
-responses to a refused upstream connection. This mode expects Identity to be stopped.
+responses to an unavailable upstream timeout. Immediate connection and DNS failures are
+covered separately as `502 / BAD_GATEWAY` by Gateway integration tests. This mode expects Identity to be stopped.

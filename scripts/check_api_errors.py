@@ -38,8 +38,8 @@ def main():
     args = parser.parse_args()
     if args.upstream_down:
         for base in ["http://localhost:8080", "http://localhost"]:
-            check(base, "/api/identity/auth/login", 502, "BAD_GATEWAY", method="POST", data=b"{}")
-        print("Gateway and Nginx upstream connection failure checks passed")
+            check(base, "/api/identity/auth/login", 504, "GATEWAY_TIMEOUT", method="POST", data=b"{}")
+        print("Gateway and Nginx upstream timeout checks passed")
         return
 
     for port in range(8080, 8085):

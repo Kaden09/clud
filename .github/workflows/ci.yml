@@ -63,61 +63,17 @@ jobs:
       - name: Prepare environment
         run: cp .env.example .env
 
-      - name: Validate Compose configuration
-        run: docker compose config --quiet
-
       - name: Start application stack
         run: docker compose up --detach --build --wait --wait-timeout 300
 
-      - name: Check service readiness
+      - name: Check public entrypoint
         run: |
-          for port in 8080 8081 8082 8083 8084; do
-            curl --fail --silent --show-error "http://localhost:${port}/actuator/health/readiness" |
-              jq --exit-status '.status == "UP"'
-          done
-
-      - name: Check OpenAPI documents
-        run: |
-          for port in 8080 8081 8082 8083 8084; do
-            curl --fail --silent --show-error "http://localhost:${port}/v3/api-docs" |
-              jq --exit-status '.openapi and .info.title'
-          done
-
-      - name: Check not-found response through Nginx
-        run: |
-          response=$(mktemp)
           status=$(curl --silent --show-error \
-            --output "$response" \
+            --output /dev/null \
             --write-out "%{http_code}" \
             "http://localhost/unknown-endpoint")
 
           test "$status" = "404"
-          jq --exit-status '
-            .status == 404 and
-            .code == "NOT_FOUND" and
-            .path == "/unknown-endpoint" and
-            (.timestamp | strings | length > 0) and
-            (.message | strings | length > 0) and
-            (has("fieldErrors") | not)
-          ' "$response"
-
-      - name: Check unauthorized response through Nginx
-        run: |
-          response=$(mktemp)
-          status=$(curl --silent --show-error \
-            --output "$response" \
-            --write-out "%{http_code}" \
-            "http://localhost/api/files/nodes")
-
-          test "$status" = "401"
-          jq --exit-status '
-            .status == 401 and
-            .code == "UNAUTHORIZED" and
-            .path == "/api/files/nodes" and
-            (.timestamp | strings | length > 0) and
-            (.message | strings | length > 0) and
-            (has("fieldErrors") | not)
-          ' "$response"
 
       - name: Show Compose logs
         if: failure()

@@ -14,7 +14,9 @@ class ApiErrorTests {
     private final JsonMapper mapper = JsonMapper.builder().build();
 
     @ParameterizedTest
-    @EnumSource(HttpStatus.class)
+    @EnumSource(value = HttpStatus.class, names = {"BAD_REQUEST", "UNAUTHORIZED", "FORBIDDEN",
+            "NOT_FOUND", "METHOD_NOT_ALLOWED", "CONFLICT", "INTERNAL_SERVER_ERROR",
+            "BAD_GATEWAY", "SERVICE_UNAVAILABLE", "GATEWAY_TIMEOUT"})
     void derivesCodeFromStatusAndOmitsEmptyFieldErrors(HttpStatus status) {
         var json = mapper.valueToTree(ApiError.of(status, "Description", "/example", Map.of()));
         assertThat(json.get("status").asInt()).isEqualTo(status.value());

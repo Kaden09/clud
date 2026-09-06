@@ -56,8 +56,6 @@ public class ApiExceptionHandler {
 				Map.of());
 	}
 
-
-
     @ExceptionHandler(ConstraintViolationException.class)
     ResponseEntity<ApiError> handleConstraintViolation(ConstraintViolationException exception,
             HttpServletRequest request) {

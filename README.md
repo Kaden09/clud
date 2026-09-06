@@ -248,3 +248,9 @@ requests and pushes to `dev` or `main`.
 
 PostgreSQL, Redis, Kafka, and MinIO use named Docker volumes. A regular
 `docker compose down` preserves them; `docker compose down -v` deletes them.
+
+## API error contract
+
+All services use standard HTTP names in `code` and optional validation `fieldErrors`.
+See [API errors](docs/api-errors.md) for the JSON schema, status mapping, routing behavior,
+compatibility changes, and Compose checks.

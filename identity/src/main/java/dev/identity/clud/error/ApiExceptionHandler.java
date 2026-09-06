@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
-
     @ExceptionHandler(EmailAlreadyExistsException.class)
     ResponseEntity<ApiError> handleConflict(
             EmailAlreadyExistsException exception,
@@ -29,7 +28,6 @@ public class ApiExceptionHandler {
             HttpServletRequest request) {
         return response(HttpStatus.UNAUTHORIZED, "Authentication failed", request, null);
     }
-
 
     @ExceptionHandler(Exception.class)
     ResponseEntity<ApiError> handleUnexpected(Exception exception, HttpServletRequest request) {

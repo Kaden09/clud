@@ -63,8 +63,6 @@ public class ApiExceptionHandler {
 		return error(HttpStatus.BAD_GATEWAY, exception.getMessage(), request, Map.of());
 	}
 
-
-
 	@ExceptionHandler(ConstraintViolationException.class)
 	ResponseEntity<ApiError> handleConstraintViolation(
 			ConstraintViolationException exception,

@@ -83,6 +83,14 @@ jobs:
               jq --exit-status '.openapi and .info.title'
           done
 
+      - name: Check API error contracts
+        run: python3 scripts/check_api_errors.py
+
+      - name: Check unavailable upstream responses
+        run: |
+          docker compose stop identity
+          python3 scripts/check_api_errors.py --upstream-down
+
       - name: Show Compose logs
         if: failure()
         run: docker compose logs --no-color

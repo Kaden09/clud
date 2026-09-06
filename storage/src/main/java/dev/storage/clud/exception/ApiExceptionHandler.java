@@ -48,8 +48,6 @@ public class ApiExceptionHandler {
 				"The storage operation could not be completed", request, Map.of());
 	}
 
-
-
 	@ExceptionHandler(Exception.class)
 	ResponseEntity<ApiError> handleUnexpected(Exception exception, HttpServletRequest request) {
 		log.error("Unexpected error at uri={}", request.getRequestURI(), exception);

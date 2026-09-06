@@ -106,6 +106,14 @@ class GatewayIntegrationTests {
     }
 
     @Test
+    void preservesUpstreamErrorResponse() throws Exception {
+        HttpResponse<String> response = send(authorizedGet("/api/files/upstream-error"));
+
+        assertThat(response.statusCode()).isEqualTo(422);
+        assertThat(response.body()).isEqualTo("{\"code\":\"UPSTREAM_ERROR\",\"detail\":\"original\"}");
+    }
+
+    @Test
     void preservesIdentityCookiePublicPath() throws Exception {
         HttpRequest request = HttpRequest.newBuilder(gatewayUri("/api/identity/auth/login"))
                 .POST(HttpRequest.BodyPublishers.noBody())
@@ -292,7 +300,37 @@ class GatewayIntegrationTests {
     void returnsNotFoundForUnknownAuthenticatedRoute() throws Exception {
         HttpResponse<String> response = send(authorizedGet("/api/unknown/resource"));
 
-        assertThat(response.statusCode()).isEqualTo(404);
+        assertGatewayError(
+                response,
+                404,
+                "ROUTE_NOT_FOUND",
+                "No route found for the requested path",
+                "/api/unknown/resource");
+    }
+
+    @Test
+    void returnsNotFoundForRootPath() throws Exception {
+        HttpResponse<String> response = send(
+                HttpRequest.newBuilder(gatewayUri("/")).GET().build());
+
+        assertGatewayError(
+                response,
+                404,
+                "ROUTE_NOT_FOUND",
+                "No route found for the requested path",
+                "/");
+    }
+
+    @Test
+    void returnsServiceUnavailableWhenUpstreamCannotBeReached() throws Exception {
+        HttpResponse<String> response = send(authorizedGet("/api/files/unavailable"));
+
+        assertGatewayError(
+                response,
+                503,
+                "UPSTREAM_UNAVAILABLE",
+                "The upstream service is unavailable",
+                "/api/files/unavailable");
     }
 
     @Test
@@ -306,6 +344,21 @@ class GatewayIntegrationTests {
 
     private HttpResponse<String> send(HttpRequest request) throws IOException, InterruptedException {
         return HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private void assertGatewayError(
+            HttpResponse<String> response,
+            int status,
+            String code,
+            String message,
+            String path) {
+        assertThat(response.statusCode()).isEqualTo(status);
+        assertThat(response.body()).contains(
+                "\"status\":" + status,
+                "\"code\":\"" + code + "\"",
+                "\"message\":\"" + message + "\"",
+                "\"path\":\"" + path + "\"",
+                "\"fieldErrors\":{}");
     }
 
     private HttpRequest authorizedGet(String path) {
@@ -372,6 +425,21 @@ class GatewayIntegrationTests {
     }
 
     private static void handleUpstreamRequest(HttpExchange exchange) throws IOException {
+        if ("/unavailable".equals(exchange.getRequestURI().getPath())) {
+            exchange.close();
+            return;
+        }
+
+        if ("/upstream-error".equals(exchange.getRequestURI().getPath())) {
+            byte[] responseBytes = "{\"code\":\"UPSTREAM_ERROR\",\"detail\":\"original\"}"
+                    .getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            exchange.sendResponseHeaders(422, responseBytes.length);
+            exchange.getResponseBody().write(responseBytes);
+            exchange.close();
+            return;
+        }
+
         String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
         String responseBody = String.join("\n",
                 "method=" + exchange.getRequestMethod(),

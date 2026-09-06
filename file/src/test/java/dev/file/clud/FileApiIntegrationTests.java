@@ -129,7 +129,7 @@ class FileApiIntegrationTests {
 				ownerId,
 				"{\"name\":\"private\"}");
 		assertThat(duplicate.statusCode()).isEqualTo(409);
-		assertThat(duplicate.body()).contains("NODE_CONFLICT");
+		assertThat(duplicate.body()).contains("\"code\":\"CONFLICT\"", "already exists");
 	}
 
 	@Test
@@ -145,7 +145,7 @@ class FileApiIntegrationTests {
 				null);
 
 		assertThat(response.statusCode()).isEqualTo(400);
-		assertThat(response.body()).contains("INVALID_NODE_OPERATION");
+		assertThat(response.body()).contains("\"code\":\"BAD_REQUEST\"", "A folder cannot be moved");
 	}
 
 	@Test

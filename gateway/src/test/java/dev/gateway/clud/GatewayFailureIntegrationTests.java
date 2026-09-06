@@ -1,6 +1,7 @@
 package dev.gateway.clud;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.net.URI;
@@ -43,10 +44,26 @@ class GatewayFailureIntegrationTests {
         assertFailure(new SocketTimeoutException("private backend address"), 504, "GATEWAY_TIMEOUT");
     }
 
+    @Test
+    void requestFactoryConnectionFailureReturnsBadGateway() throws Exception {
+        assertExchangeFailure(new UncheckedIOException(new ConnectException("private backend address")),
+                502, "BAD_GATEWAY");
+    }
+
+    @Test
+    void requestFactoryTimeoutReturnsGatewayTimeout() throws Exception {
+        assertExchangeFailure(new UncheckedIOException(new SocketTimeoutException("private backend address")),
+                504, "GATEWAY_TIMEOUT");
+    }
+
     private void assertFailure(IOException cause, int status, String code) throws Exception {
+        assertExchangeFailure(new ResourceAccessException("private backend address", cause), status, code);
+    }
+
+    private void assertExchangeFailure(RuntimeException failure, int status, String code) throws Exception {
         // Request construction belongs to the exchange API and is independent of the network.
         when(proxyExchange.request(any())).thenCallRealMethod();
-        when(proxyExchange.exchange(any())).thenThrow(new ResourceAccessException("private backend address", cause));
+        when(proxyExchange.exchange(any())).thenThrow(failure);
         String path = "/api/identity/auth/login";
         HttpResponse<String> response = HttpClient.newHttpClient().send(
                 HttpRequest.newBuilder(URI.create("http://localhost:" + port + path)).GET().build(),

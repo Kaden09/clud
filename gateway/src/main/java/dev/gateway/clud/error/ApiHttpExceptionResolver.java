@@ -2,6 +2,8 @@ package dev.gateway.clud.error;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.net.http.HttpTimeoutException;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -13,6 +15,7 @@ import java.util.Map;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.Ordered;
+import org.springframework.cloud.gateway.server.mvc.common.MvcUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -54,8 +57,8 @@ public class ApiHttpExceptionResolver extends AbstractHandlerExceptionResolver {
                 || exception instanceof MethodArgumentTypeMismatchException) {
             status = HttpStatus.BAD_REQUEST;
         }
-        else if (upstreamFailureStatus(exception) != null) {
-            status = upstreamFailureStatus(exception);
+        else if (upstreamFailureStatus(request, exception) != null) {
+            status = upstreamFailureStatus(request, exception);
         }
         else {
             return null; // Unhandled failures reach the servlet JSON error controller.
@@ -88,12 +91,15 @@ public class ApiHttpExceptionResolver extends AbstractHandlerExceptionResolver {
         }
     }
 
-    private HttpStatus upstreamFailureStatus(Throwable exception) {
+    private HttpStatus upstreamFailureStatus(HttpServletRequest request, Throwable exception) {
+        boolean routed = request.getAttribute(MvcUtils.GATEWAY_REQUEST_URL_ATTR) != null;
         boolean upstream = false;
         boolean timeout = false;
         Set<Throwable> visited = Collections.newSetFromMap(new IdentityHashMap<>());
         for (Throwable cause = exception; cause != null && visited.add(cause); cause = cause.getCause()) {
-            upstream |= cause instanceof ResourceAccessException;
+            upstream |= cause instanceof ResourceAccessException
+                    || (routed && (cause instanceof SocketException || cause instanceof UnknownHostException
+                            || cause instanceof SocketTimeoutException || cause instanceof HttpTimeoutException));
             timeout |= cause instanceof SocketTimeoutException || cause instanceof HttpTimeoutException
                     || cause instanceof TimeoutException;
         }

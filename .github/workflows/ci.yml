@@ -89,6 +89,7 @@ jobs:
       - name: Check unavailable upstream responses
         run: |
           docker compose stop identity
+          docker compose rm --force identity
           python3 scripts/check_api_errors.py --upstream-down
 
       - name: Show Compose logs

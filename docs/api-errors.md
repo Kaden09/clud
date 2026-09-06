@@ -99,6 +99,6 @@ With the default Compose ports and a running stack:
 python3 scripts/check_api_errors.py
 ```
 
-The CI smoke job runs this after readiness/OpenAPI checks, then stops Identity and runs
+The CI smoke job runs this after readiness/OpenAPI checks, then stops and removes Identity from the Compose network and runs
 `python3 scripts/check_api_errors.py --upstream-down` to verify actual Gateway and Nginx
 responses to a refused upstream connection. This mode expects Identity to be stopped.

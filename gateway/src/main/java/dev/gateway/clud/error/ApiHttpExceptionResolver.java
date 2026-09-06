@@ -1,6 +1,12 @@
 package dev.gateway.clud.error;
 
 import java.io.IOException;
+import java.net.SocketTimeoutException;
+import java.net.http.HttpTimeoutException;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Set;
+import java.util.concurrent.TimeoutException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -14,6 +20,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.ErrorResponse;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.ModelAndView;
@@ -47,8 +54,11 @@ public class ApiHttpExceptionResolver extends AbstractHandlerExceptionResolver {
                 || exception instanceof MethodArgumentTypeMismatchException) {
             status = HttpStatus.BAD_REQUEST;
         }
+        else if (upstreamFailureStatus(exception) != null) {
+            status = upstreamFailureStatus(exception);
+        }
         else {
-            return null; // Domain exceptions remain the responsibility of service advice.
+            return null; // Unhandled failures reach the servlet JSON error controller.
         }
 
         Map<String, String> fields = new LinkedHashMap<>();
@@ -76,5 +86,17 @@ public class ApiHttpExceptionResolver extends AbstractHandlerExceptionResolver {
             logger.warn("Could not write API error response", writeFailure);
             return null;
         }
+    }
+
+    private HttpStatus upstreamFailureStatus(Throwable exception) {
+        boolean upstream = false;
+        boolean timeout = false;
+        Set<Throwable> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (Throwable cause = exception; cause != null && visited.add(cause); cause = cause.getCause()) {
+            upstream |= cause instanceof ResourceAccessException;
+            timeout |= cause instanceof SocketTimeoutException || cause instanceof HttpTimeoutException
+                    || cause instanceof TimeoutException;
+        }
+        return upstream ? (timeout ? HttpStatus.GATEWAY_TIMEOUT : HttpStatus.BAD_GATEWAY) : null;
     }
 }

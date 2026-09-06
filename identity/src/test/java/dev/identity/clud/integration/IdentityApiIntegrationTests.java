@@ -171,6 +171,31 @@ class IdentityApiIntegrationTests {
         assertThat(invalid.body()).contains("UNAUTHORIZED");
     }
 
+    @Test
+    void unknownRoutesReturnNotFoundWithAndWithoutTokens() throws Exception {
+        register("user@example.com");
+        Tokens tokens = login();
+        for (String path : new String[] {"/", "/unknown", "/user/unknown", "/auth/unknown"}) {
+            for (String token : new String[] {null, "invalid-token", tokens.accessToken()}) {
+                HttpResponse<String> response = request("GET", path, null, token, null);
+                assertThat(response.statusCode()).as(path).isEqualTo(404);
+                assertThat(response.body()).contains("\"code\":\"NOT_FOUND\"", "\"path\":\"" + path + "\"")
+                        .doesNotContain("fieldErrors");
+            }
+        }
+    }
+
+    @Test
+    void protectedMethodsStayProtectedAndAuthorizedMethodErrorsKeepAllowHeader() throws Exception {
+        assertThat(request("POST", "/user/me", null, null, null).statusCode()).isEqualTo(401);
+        register("user@example.com");
+        HttpResponse<String> response = request("POST", "/user/me", null, login().accessToken(), null);
+        assertThat(response.statusCode()).isEqualTo(405);
+        assertThat(response.body()).contains("METHOD_NOT_ALLOWED").doesNotContain("fieldErrors");
+        assertThat(response.headers().firstValue("Allow")).hasValueSatisfying(value -> assertThat(value).contains("GET"));
+        assertThat(request("GET", "/actuator/info", null, null, null).statusCode()).isEqualTo(401);
+    }
+
     private HttpResponse<String> register(String email) throws Exception {
         return request(
                 "POST",

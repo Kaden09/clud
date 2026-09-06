@@ -1,6 +1,5 @@
 package dev.sharing.clud.error;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,13 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @Slf4j
 @RestControllerAdvice
@@ -62,34 +56,13 @@ public class ApiExceptionHandler {
 				Map.of());
 	}
 
-	@ExceptionHandler(MethodArgumentNotValidException.class)
-	ResponseEntity<ApiError> handleValidation(
-			MethodArgumentNotValidException exception,
-			HttpServletRequest request) {
-		Map<String, String> fieldErrors = new LinkedHashMap<>();
-		for (FieldError fieldError : exception.getBindingResult().getFieldErrors()) {
-			fieldErrors.putIfAbsent(fieldError.getField(), fieldError.getDefaultMessage());
-		}
-		return error(
-				HttpStatus.BAD_REQUEST,
-				"Request validation failed",
-				request,
-				fieldErrors);
-	}
 
-	@ExceptionHandler({
-			ConstraintViolationException.class,
-			MethodArgumentTypeMismatchException.class,
-			HttpMessageNotReadableException.class,
-			MissingRequestHeaderException.class
-	})
-	ResponseEntity<ApiError> handleMalformedRequest(Exception exception, HttpServletRequest request) {
-		return error(
-				HttpStatus.BAD_REQUEST,
-				"The request contains an invalid value",
-				request,
-				Map.of());
-	}
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    ResponseEntity<ApiError> handleConstraintViolation(ConstraintViolationException exception,
+            HttpServletRequest request) {
+        return error(HttpStatus.BAD_REQUEST, "Request validation failed", request, Map.of());
+    }
 
 	@ExceptionHandler(Exception.class)
 	ResponseEntity<ApiError> handleUnexpected(Exception exception, HttpServletRequest request) {

@@ -4,15 +4,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Slf4j
@@ -54,41 +48,7 @@ public class ApiExceptionHandler {
 				"The storage operation could not be completed", request, Map.of());
 	}
 
-	@ExceptionHandler(MethodArgumentNotValidException.class)
-	ResponseEntity<ApiError> handleValidation(
-			MethodArgumentNotValidException exception,
-			HttpServletRequest request) {
-		Map<String, String> fieldErrors = new LinkedHashMap<>();
-		for (FieldError fieldError : exception.getBindingResult().getFieldErrors()) {
-			fieldErrors.putIfAbsent(fieldError.getField(), fieldError.getDefaultMessage());
-		}
 
-		log.warn("Request validation failed: uri={}, fields={}", request.getRequestURI(), fieldErrors);
-
-		return error(
-				HttpStatus.BAD_REQUEST,
-				"Request validation failed",
-				request,
-				fieldErrors);
-	}
-
-	@ExceptionHandler({
-			MethodArgumentTypeMismatchException.class,
-			HttpMessageNotReadableException.class,
-			MissingRequestHeaderException.class
-	})
-	ResponseEntity<ApiError> handleMalformedRequest(Exception exception, HttpServletRequest request) {
-		log.warn("Malformed request: uri={}, type={}, message={}",
-				request.getRequestURI(),
-				exception.getClass().getSimpleName(),
-				exception.getMessage());
-
-		return error(
-				HttpStatus.BAD_REQUEST,
-				"The request contains an invalid value",
-				request,
-				Map.of());
-	}
 
 	@ExceptionHandler(Exception.class)
 	ResponseEntity<ApiError> handleUnexpected(Exception exception, HttpServletRequest request) {

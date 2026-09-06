@@ -345,9 +345,8 @@ Each application has contract and MVC routing/binding tests. Identity additional
 unknown paths with absent, invalid, and valid tokens plus protected endpoints. Gateway
 tests functional-route connection failures/timeouts and unchanged upstream error bodies.
 
-The Compose smoke job runs these checks through direct service ports, Gateway, and Nginx
-after readiness and OpenAPI verification. It then stops and removes Identity and verifies
-that Gateway and Nginx return a valid unavailable-upstream error. Depending on whether the
-network failure is observed as an immediate connection/DNS failure or as a connection
-timeout, the correct result is respectively `502 / BAD_GATEWAY` or
+The Compose smoke job verifies readiness and OpenAPI documents, then checks representative
+`404 / NOT_FOUND` and `401 / UNAUTHORIZED` responses through Nginx. Detailed error
+contract cases remain in the service tests. Gateway integration tests deterministically
+verify connection failures as `502 / BAD_GATEWAY` and timeouts as
 `504 / GATEWAY_TIMEOUT`.

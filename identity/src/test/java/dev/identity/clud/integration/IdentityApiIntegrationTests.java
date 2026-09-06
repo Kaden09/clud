@@ -86,7 +86,7 @@ class IdentityApiIntegrationTests {
 
         HttpResponse<String> duplicate = register("USER@example.com");
         assertThat(duplicate.statusCode()).isEqualTo(409);
-        assertThat(duplicate.body()).contains("EMAIL_ALREADY_EXISTS");
+        assertThat(duplicate.body()).contains("CONFLICT");
 
         HttpResponse<String> invalid = request(
                 "POST",
@@ -95,7 +95,7 @@ class IdentityApiIntegrationTests {
                 null,
                 null);
         assertThat(invalid.statusCode()).isEqualTo(400);
-        assertThat(invalid.body()).contains("VALIDATION_FAILED", "email", "password");
+        assertThat(invalid.body()).contains("BAD_REQUEST", "email", "password");
     }
 
     @Test
@@ -149,7 +149,7 @@ class IdentityApiIntegrationTests {
                 null,
                 login.cookie());
         assertThat(reuse.statusCode()).isEqualTo(401);
-        assertThat(reuse.body()).contains("AUTHENTICATION_FAILED");
+        assertThat(reuse.body()).contains("UNAUTHORIZED");
 
         HttpResponse<String> revokedRotation = request(
                 "POST",
@@ -168,7 +168,7 @@ class IdentityApiIntegrationTests {
 
         HttpResponse<String> invalid = request("GET", "/user/me", null, "not-a-jwt", null);
         assertThat(invalid.statusCode()).isEqualTo(401);
-        assertThat(invalid.body()).contains("INVALID_ACCESS_TOKEN");
+        assertThat(invalid.body()).contains("UNAUTHORIZED");
     }
 
     private HttpResponse<String> register(String email) throws Exception {

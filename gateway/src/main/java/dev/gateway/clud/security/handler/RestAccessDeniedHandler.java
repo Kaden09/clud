@@ -26,7 +26,6 @@ public class RestAccessDeniedHandler implements AccessDeniedHandler {
                 request,
                 response,
                 HttpServletResponse.SC_FORBIDDEN,
-                "FORBIDDEN",
                 "Access is denied");
     }
 }

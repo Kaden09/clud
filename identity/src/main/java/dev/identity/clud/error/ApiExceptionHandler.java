@@ -1,6 +1,5 @@
 package dev.identity.clud.error;
 
-import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -26,46 +25,42 @@ public class ApiExceptionHandler {
         Map<String, String> errors = new LinkedHashMap<>();
         exception.getBindingResult().getFieldErrors()
                 .forEach(error -> errors.putIfAbsent(error.getField(), error.getDefaultMessage()));
-        return response(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", "Request validation failed", request, errors);
+        return response(HttpStatus.BAD_REQUEST, "Request validation failed", request, errors);
     }
 
     @ExceptionHandler(EmailAlreadyExistsException.class)
     ResponseEntity<ApiError> handleConflict(
             EmailAlreadyExistsException exception,
             HttpServletRequest request) {
-        return response(HttpStatus.CONFLICT, "EMAIL_ALREADY_EXISTS", exception.getMessage(), request, null);
+        return response(HttpStatus.CONFLICT, exception.getMessage(), request, null);
     }
 
     @ExceptionHandler({InvalidTokenException.class, UsernameNotFoundException.class, BadCredentialsException.class})
     ResponseEntity<ApiError> handleAuthentication(
             RuntimeException exception,
             HttpServletRequest request) {
-        return response(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_FAILED", "Authentication failed", request, null);
+        return response(HttpStatus.UNAUTHORIZED, "Authentication failed", request, null);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     ResponseEntity<ApiError> handleMalformedBody(
             HttpMessageNotReadableException exception,
             HttpServletRequest request) {
-        return response(HttpStatus.BAD_REQUEST, "MALFORMED_REQUEST", "Malformed JSON or missing request body", request, null);
+        return response(HttpStatus.BAD_REQUEST, "Malformed JSON or missing request body", request, null);
     }
 
     @ExceptionHandler(Exception.class)
     ResponseEntity<ApiError> handleUnexpected(Exception exception, HttpServletRequest request) {
         log.error("Unexpected identity error on {}", request.getRequestURI(), exception);
-        return response(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "An unexpected error occurred", request, null);
+        return response(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred. Please try again later.", request, null);
     }
 
     private ResponseEntity<ApiError> response(
             HttpStatus status,
-            String code,
             String message,
             HttpServletRequest request,
             Map<String, String> fieldErrors) {
-        return ResponseEntity.status(status).body(new ApiError(
-                Instant.now(),
-                status.value(),
-                code,
+        return ResponseEntity.status(status).body(ApiError.of(status,
                 message,
                 request.getRequestURI(),
                 fieldErrors));

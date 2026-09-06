@@ -57,7 +57,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         catch (InvalidTokenException | UsernameNotFoundException exception) {
             SecurityContextHolder.clearContext();
-            errorWriter.write(response, HttpServletResponse.SC_UNAUTHORIZED, "INVALID_ACCESS_TOKEN", exception.getMessage());
+            errorWriter.write(request, response, HttpServletResponse.SC_UNAUTHORIZED, exception.getMessage());
         }
     }
 

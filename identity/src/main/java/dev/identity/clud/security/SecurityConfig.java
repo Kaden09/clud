@@ -2,6 +2,8 @@ package dev.identity.clud.security;
 
 import java.util.List;
 
+import jakarta.servlet.DispatcherType;
+
 import dev.identity.clud.security.jwt.JwtAuthenticationFilter;
 import dev.identity.clud.security.handler.RestAccessDeniedHandler;
 import dev.identity.clud.security.handler.RestAuthenticationEntryPoint;
@@ -35,7 +37,7 @@ public class SecurityConfig {
     private final RestAccessDeniedHandler accessDeniedHandler;
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, UnknownRouteRequestMatcher unknownRoute) throws Exception {
         return http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
@@ -44,6 +46,10 @@ public class SecurityConfig {
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(authorize -> authorize
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                        .requestMatchers("/error").permitAll()
+                        .requestMatchers(unknownRoute).permitAll()
+                        .requestMatchers("/auth/**", "/actuator/health/**", "/v3/api-docs/**", "/docs/**", "/swagger-ui/**").permitAll()
                         .requestMatchers("/auth/**", "/actuator/health/**", "/actuator/prometheus/**", "/v3/api-docs/**", "/docs/**", "/swagger-ui/**").permitAll()
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())

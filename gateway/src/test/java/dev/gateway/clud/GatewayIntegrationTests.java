@@ -304,6 +304,25 @@ class GatewayIntegrationTests {
         assertThat(response.body()).contains("\"status\":\"UP\"");
     }
 
+    @Test
+    void localUnknownPathsUseTheApiErrorContract() throws Exception {
+        for (String path : new String[] {"/", "/unknown", "/error"}) {
+            HttpResponse<String> response = send(HttpRequest.newBuilder(gatewayUri(path)).GET().build());
+            assertThat(response.statusCode()).isEqualTo(404);
+            assertThat(response.body()).contains("\"code\":\"NOT_FOUND\"", "\"path\":\"" + path + "\"")
+                    .doesNotContain("fieldErrors");
+        }
+    }
+
+    @Test
+    void preservesUpstreamErrorBodyAndStatus() throws Exception {
+        HttpResponse<String> response = send(HttpRequest.newBuilder(gatewayUri("/api/identity/auth/test-error"))
+                .GET().build());
+        assertThat(response.statusCode()).isEqualTo(409);
+        assertThat(response.body()).isEqualTo(UPSTREAM_ERROR);
+        assertThat(response.headers().firstValue("Content-Type")).contains("application/json");
+    }
+
     private HttpResponse<String> send(HttpRequest request) throws IOException, InterruptedException {
         return HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
     }
@@ -371,7 +390,18 @@ class GatewayIntegrationTests {
         }
     }
 
+    private static final String UPSTREAM_ERROR = "{\"timestamp\":\"2026-09-06T19:00:00Z\",\"status\":409,"
+            + "\"code\":\"CONFLICT\",\"message\":\"Email already exists\",\"path\":\"/auth/test-error\"}";
+
     private static void handleUpstreamRequest(HttpExchange exchange) throws IOException {
+        if ("/auth/test-error".equals(exchange.getRequestURI().getPath())) {
+            byte[] bytes = UPSTREAM_ERROR.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            exchange.sendResponseHeaders(409, bytes.length);
+            exchange.getResponseBody().write(bytes);
+            exchange.close();
+            return;
+        }
         String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
         String responseBody = String.join("\n",
                 "method=" + exchange.getRequestMethod(),

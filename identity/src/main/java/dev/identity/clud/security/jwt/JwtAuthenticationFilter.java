@@ -3,6 +3,7 @@ package dev.identity.clud.security.jwt;
 import java.io.IOException;
 
 import dev.identity.clud.error.InvalidTokenException;
+import dev.identity.clud.security.UnknownRouteRequestMatcher;
 import dev.identity.clud.security.principal.AuthenticatedUser;
 import dev.identity.clud.security.principal.IdentityUserDetailsService;
 import dev.identity.clud.security.handler.SecurityErrorResponseWriter;
@@ -23,9 +24,15 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    private final UnknownRouteRequestMatcher unknownRoute;
     private final JwtTokenService jwtService;
     private final IdentityUserDetailsService userDetailsService;
     private final SecurityErrorResponseWriter errorWriter;
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return unknownRoute.matches(request);
+    }
 
     @Override
     protected void doFilterInternal(
@@ -53,12 +60,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
-            filterChain.doFilter(request, response);
         }
         catch (InvalidTokenException | UsernameNotFoundException exception) {
             SecurityContextHolder.clearContext();
-            errorWriter.write(response, HttpServletResponse.SC_UNAUTHORIZED, "INVALID_ACCESS_TOKEN", exception.getMessage());
+            errorWriter.write(request, response, HttpServletResponse.SC_UNAUTHORIZED, "Invalid access token");
+            return;
         }
+        filterChain.doFilter(request, response);
     }
 
 }

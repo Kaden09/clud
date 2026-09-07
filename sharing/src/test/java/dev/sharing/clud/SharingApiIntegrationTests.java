@@ -221,7 +221,7 @@ class SharingApiIntegrationTests {
 
 		HttpResponse<String> preview = request("GET", "/public/" + created.token() + "/preview", null, null);
 		assertThat(preview.statusCode()).isEqualTo(415);
-		assertThat(preview.body()).contains("PREVIEW_NOT_SUPPORTED");
+		assertThat(preview.body()).contains("\"code\":\"UNSUPPORTED_MEDIA_TYPE\"", "Preview is not supported");
 		assertThat(request("GET", "/public/" + created.token() + "/download", null, null).statusCode())
 				.isEqualTo(200);
 	}
@@ -241,7 +241,7 @@ class SharingApiIntegrationTests {
 				null);
 
 		assertThat(download.statusCode()).isEqualTo(404);
-		assertThat(download.body()).contains("RESOURCE_NOT_FOUND");
+		assertThat(download.body()).contains("\"code\":\"NOT_FOUND\"", "was not found");
 		assertThat(LAST_STORAGE_KEY).hasValue(MISSING_STORAGE_KEY);
 	}
 

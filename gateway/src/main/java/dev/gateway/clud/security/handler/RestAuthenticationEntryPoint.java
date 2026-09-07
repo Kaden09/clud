@@ -26,7 +26,6 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
                 request,
                 response,
                 HttpServletResponse.SC_UNAUTHORIZED,
-                "UNAUTHORIZED",
                 "Authentication is required");
     }
 }

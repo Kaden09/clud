@@ -21,6 +21,6 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
             HttpServletRequest request,
             HttpServletResponse response,
             AuthenticationException exception) throws IOException, ServletException {
-        errorWriter.write(response, HttpServletResponse.SC_UNAUTHORIZED, "UNAUTHORIZED", "Authentication is required");
+        errorWriter.write(request, response, HttpServletResponse.SC_UNAUTHORIZED, "Authentication is required");
     }
 }

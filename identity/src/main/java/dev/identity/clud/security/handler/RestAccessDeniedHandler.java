@@ -21,6 +21,6 @@ public class RestAccessDeniedHandler implements AccessDeniedHandler {
             HttpServletRequest request,
             HttpServletResponse response,
             AccessDeniedException exception) throws IOException, ServletException {
-        errorWriter.write(response, HttpServletResponse.SC_FORBIDDEN, "FORBIDDEN", "Access is denied");
+        errorWriter.write(request, response, HttpServletResponse.SC_FORBIDDEN, "Access is denied");
     }
 }

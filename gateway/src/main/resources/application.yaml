@@ -4,6 +4,9 @@ server:
 spring:
   application:
     name: gateway
+  http:
+    clients:
+      connect-timeout: 2s
   cloud:
     gateway:
       server:

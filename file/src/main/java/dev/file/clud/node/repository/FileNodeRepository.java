@@ -25,6 +25,8 @@ public interface FileNodeRepository extends JpaRepository<FileNode, UUID> {
 
     List<FileNode> findByOwnerIdAndParentId(UUID ownerId, UUID parentId);
 
+    List<FileNode> findByOwnerIdAndTrashRootTrue(UUID ownerId);
+
     boolean existsByOwnerIdAndParentIdAndNameIgnoreCaseAndDeletedAtIsNull(
             UUID ownerId,
             UUID parentId,

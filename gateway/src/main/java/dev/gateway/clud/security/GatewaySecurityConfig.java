@@ -66,7 +66,8 @@ public class GatewaySecurityConfig {
                                 "/v3/api-docs/**",
                                 "/docs/**",
                                 "/swagger-ui/**",
-                                "/actuator/health/**").permitAll()
+                                "/actuator/health/**",
+                                "/actuator/prometheus/**").permitAll()
                         .requestMatchers("/api/files/internal/**").denyAll()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll())

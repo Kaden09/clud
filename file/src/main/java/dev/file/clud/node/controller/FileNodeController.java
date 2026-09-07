@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import dev.file.clud.content.FileContentService;
 import dev.file.clud.content.FileDownload;
+import dev.file.clud.node.dto.request.DeleteNodesRequest;
 import dev.file.clud.node.mapper.NodeMapper;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -160,6 +161,23 @@ public class FileNodeController {
 		log.info("Restoring node from trash: nodeId={}, ownerId={}", nodeId, ownerId);
 
 		return mapper.toResponse(service.restore(ownerId, nodeId));
+	}
+
+	@DeleteMapping("/trash/batch")
+	ResponseEntity<Void> permanentlyDelete(
+			@RequestHeader(USER_ID_HEADER) UUID ownerId,
+			@RequestBody DeleteNodesRequest request
+	) {
+		log.info("Permanently deleting nodes from trash: ownerId={}, count={}", ownerId, request.nodeIds().size());
+		service.permanentlyDelete(ownerId, request.nodeIds());
+		return ResponseEntity.noContent().build();
+	}
+
+	@DeleteMapping("/trash")
+	ResponseEntity<Void> emptyTrash(@RequestHeader(USER_ID_HEADER) UUID ownerId) {
+		log.info("Emptying trash: ownerId={}", ownerId);
+		service.emptyTrash(ownerId);
+		return ResponseEntity.noContent().build();
 	}
 
 	private MediaType mediaType(String contentType) {

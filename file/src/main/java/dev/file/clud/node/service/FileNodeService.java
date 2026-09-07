@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
+import dev.file.clud.storage.StorageClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +29,7 @@ public class FileNodeService {
 
 	private final FileNodeRepository repository;
 	private final ApplicationEventPublisher eventPublisher;
+	private final StorageClient storageClient;
 
 	@Transactional
 	public FileNode createFolder(UUID ownerId, CreateFolderRequest request) {
@@ -151,6 +153,33 @@ public class FileNodeService {
 			node.restore();
 		}
 		return root;
+	}
+
+	@Transactional
+	public void permanentlyDelete(UUID ownerId, List<UUID> nodeIds) {
+		for(UUID nodeId : nodeIds) {
+			FileNode root = repository.findByIdAndOwnerId(nodeId, ownerId)
+					.orElseThrow(() -> new NodeNotFoundException(nodeId));
+
+			if(!root.isDeleted() || !root.isTrashRoot()) {
+				throw new InvalidNodeOperationException("Only a top-level trash item can be permanently deleted");
+			}
+
+			List<FileNode> tree = collectTree(ownerId, root);
+
+			for(FileNode node : tree.reversed()) {
+				if(!node.isFolder()) {
+					storageClient.delete(node.getStorageKey());
+				}
+				repository.delete(node);
+			}
+		}
+	}
+
+	@Transactional
+	public void emptyTrash(UUID ownerId) {
+		List<FileNode> roots = repository.findByOwnerIdAndTrashRootTrue(ownerId);
+		permanentlyDelete(ownerId, roots.stream().map(FileNode::getId).toList());
 	}
 
 	private FileNode getActive(UUID ownerId, UUID nodeId) {

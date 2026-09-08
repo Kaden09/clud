@@ -4,12 +4,14 @@ import java.io.OutputStream;
 
 import dev.sharing.clud.error.SharedFileNotFoundException;
 import dev.sharing.clud.error.UpstreamServiceException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
+@Slf4j
 @Component
 public class StorageDownloadGateway {
 
@@ -40,6 +42,7 @@ public class StorageDownloadGateway {
             throw exception;
         }
         catch (RestClientException exception) {
+            log.error("Storage Service unavailable during assertReadable, fileId={}", file.fileId(), exception);
             throw new UpstreamServiceException("Storage Service is unavailable", exception);
         }
     }
@@ -66,6 +69,7 @@ public class StorageDownloadGateway {
             throw exception;
         }
         catch (RestClientException exception) {
+            log.error("Storage Service unavailable during copyTo, fileId={}", file.fileId(), exception);
             throw new UpstreamServiceException("Storage Service is unavailable", exception);
         }
     }

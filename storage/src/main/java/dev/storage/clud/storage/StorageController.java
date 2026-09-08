@@ -3,6 +3,7 @@ package dev.storage.clud.storage;
 import java.net.URI;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+@Slf4j
 @RestController
 @RequestMapping("/objects")
 @RequiredArgsConstructor
@@ -23,6 +25,7 @@ public class StorageController {
 
     @PostMapping
     ResponseEntity<StoredObjectResponse> store(@RequestParam("file") MultipartFile file) {
+        log.info("Storing object: originalFilename={}, size={}", file.getOriginalFilename(), file.getSize());
         StoredObject stored = service.store(file);
         return ResponseEntity.created(URI.create("/objects/" + stored.storageKey()))
                 .body(new StoredObjectResponse(stored.storageKey(), stored.contentType(), stored.sizeBytes()));
@@ -30,6 +33,7 @@ public class StorageController {
 
     @GetMapping("/{storageKey}")
     ResponseEntity<org.springframework.core.io.Resource> download(@PathVariable String storageKey) {
+        log.info("Downloading object: storageKey={}", storageKey);
         StorageObjectResource object = service.download(storageKey);
         return ResponseEntity.ok()
                 .contentType(object.contentType())
@@ -48,6 +52,7 @@ public class StorageController {
 
     @DeleteMapping("/{storageKey}")
     ResponseEntity<Void> delete(@PathVariable String storageKey) {
+        log.info("Deleting object: storageKey={}", storageKey);
         service.delete(storageKey);
         return ResponseEntity.noContent().build();
     }

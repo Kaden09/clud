@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -36,6 +37,7 @@ import dev.sharing.clud.storage.PreviewPolicy;
 import dev.sharing.clud.storage.PublicShareFile;
 import dev.sharing.clud.storage.StorageDownloadGateway;
 
+@Slf4j
 @Validated
 @RestController
 @RequestMapping
@@ -52,6 +54,7 @@ public class ShareLinkController {
 	ResponseEntity<CreatedShareLinkResponse> create(
 			@RequestHeader(USER_ID_HEADER) UUID ownerId,
 			@Valid @RequestBody CreateShareLinkRequest request) {
+		log.info("Creating share link: ownerId={}, fileId={}", ownerId, request.fileId());
 		CreatedShareLinkResponse response = service.create(ownerId, request);
 		return ResponseEntity.created(URI.create("/links/" + response.id())).body(response);
 	}
@@ -67,6 +70,7 @@ public class ShareLinkController {
 	ResponseEntity<Void> revoke(
 			@RequestHeader(USER_ID_HEADER) UUID ownerId,
 			@PathVariable UUID linkId) {
+		log.info("Revoking share link: ownerId={}, linkId={}", ownerId, linkId);
 		service.revoke(ownerId, linkId);
 		return ResponseEntity.noContent().build();
 	}

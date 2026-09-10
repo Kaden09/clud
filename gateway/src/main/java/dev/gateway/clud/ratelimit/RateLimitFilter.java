@@ -59,6 +59,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 errorWriter.write(request, response, TOO_MANY_REQUESTS,
                         "Rate limit exceeded. Try again in 60 seconds.");
             }
+            filterChain.doFilter(request, response);
         } catch(RuntimeException exception) {
             if(!properties.failOpen()) {
                 throw exception;

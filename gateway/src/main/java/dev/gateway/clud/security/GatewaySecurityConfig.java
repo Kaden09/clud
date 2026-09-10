@@ -4,6 +4,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 
+import dev.gateway.clud.config.RateLimitProperties;
 import jakarta.servlet.DispatcherType;
 
 import javax.crypto.SecretKey;
@@ -37,7 +38,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
-@EnableConfigurationProperties({GatewayJwtProperties.class, GatewayCorsProperties.class})
+@EnableConfigurationProperties({GatewayJwtProperties.class, GatewayCorsProperties.class, RateLimitProperties.class})
 public class GatewaySecurityConfig {
 
     @Bean

@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: gateway
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   http:
     clients:
       connect-timeout: 2s
@@ -40,6 +44,20 @@ jwt:
   secret: ${JWT_SECRET}
 
 app:
+  rate-limit:
+    enabled: true
+    fail-open: true
+    default-limit-per-minute: 60
+    limits:
+      - path: /api/identity/auth/**
+        per-minute: 10
+      - path: /api/sharing/public/**
+        per-minute: 30
+    skipped-paths:
+      - /actuator/**
+      - /v3/api-docs/**
+      - /docs/**
+      - /swagger-ui/**
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
 

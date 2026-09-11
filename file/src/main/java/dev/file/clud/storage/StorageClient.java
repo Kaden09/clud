@@ -3,6 +3,7 @@ package dev.file.clud.storage;
 import java.io.OutputStream;
 
 import dev.file.clud.error.UpstreamStorageException;
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
@@ -13,6 +14,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.multipart.MultipartFile;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class StorageClient {
@@ -40,9 +42,11 @@ public class StorageClient {
             return response;
         }
         catch (UpstreamStorageException exception) {
+            log.error("Storage store failed: {}", exception.getMessage());
             throw exception;
         }
         catch (RestClientException exception) {
+            log.error("Storage Service unavailable during store", exception);
             throw new UpstreamStorageException("Storage Service is unavailable", exception);
         }
     }
@@ -63,9 +67,11 @@ public class StorageClient {
                     });
         }
         catch (UpstreamStorageException exception) {
+            log.error("Storage copy failed for key={}: {}", storageKey, exception.getMessage());
             throw exception;
         }
         catch (RestClientException exception) {
+            log.error("Storage Service unavailable during copy, key={}", storageKey, exception);
             throw new UpstreamStorageException("Storage Service is unavailable", exception);
         }
     }
@@ -84,9 +90,11 @@ public class StorageClient {
                     .toBodilessEntity();
         }
         catch (UpstreamStorageException exception) {
+            log.error("Storage delete failed for key={}: {}", storageKey, exception.getMessage());
             throw exception;
         }
         catch (RestClientException exception) {
+            log.error("Storage Service unavailable during delete, key={}", storageKey, exception);
             throw new UpstreamStorageException("Storage Service is unavailable", exception);
         }
     }

@@ -27,6 +27,7 @@ import dev.identity.clud.auth.dto.RegisterRequest;
 import dev.identity.clud.user.dto.UserResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -37,6 +38,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -67,20 +69,24 @@ public class AuthService {
             userRepository.saveAndFlush(user);
         }
         catch (DataIntegrityViolationException exception) {
+            log.warn("Registration failed: email already exists");
             throw new EmailAlreadyExistsException("Email is already registered");
         }
 
+        log.info("User registered successfully: userId={}", user.getId());
         eventPublisher.publishEvent(UserRegisteredEvent.from(user));
         return UserResponse.from(user);
     }
 
     @Transactional
     public AccessTokenResponse login(LoginRequest request, HttpServletResponse response) {
+        String email = normalizeEmail(request.email());
         var authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        normalizeEmail(request.email()),
+                        email,
                         request.password()));
         AuthenticatedUser user = (AuthenticatedUser) authentication.getPrincipal();
+        log.info("User logged in successfully: userId={}", user.getId());
         createRefreshSession(response, user);
         return new AccessTokenResponse(jwtService.generateAccessToken(user));
     }

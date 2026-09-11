@@ -14,6 +14,7 @@ import io.minio.RemoveObjectArgs;
 import io.minio.StatObjectArgs;
 import io.minio.StatObjectResponse;
 import io.minio.errors.ErrorResponseException;
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
@@ -21,6 +22,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class StorageService {
@@ -50,6 +52,7 @@ public class StorageService {
             return new StoredObject(storageKey, contentType, file.getSize());
         }
         catch (Exception exception) {
+            log.error("Failed to store object: {}", exception.getMessage());
             throw new StorageException("Failed to store object", exception);
         }
     }
@@ -104,6 +107,7 @@ public class StorageService {
                     .bucket(bucketName)
                     .object(storageKey)
                     .build());
+            log.info("Object deleted: storageKey={}", storageKey);
         }
         catch (ErrorResponseException exception) {
             throw mapMinioError(storageKey, exception);

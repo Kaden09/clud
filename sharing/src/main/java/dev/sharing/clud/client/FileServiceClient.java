@@ -2,6 +2,7 @@ package dev.sharing.clud.client;
 
 import java.util.UUID;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
@@ -13,6 +14,7 @@ import dev.sharing.clud.error.InvalidShareOperationException;
 import dev.sharing.clud.error.SharedFileNotFoundException;
 import dev.sharing.clud.error.UpstreamServiceException;
 
+@Slf4j
 @Component
 public class FileServiceClient {
 
@@ -49,6 +51,7 @@ public class FileServiceClient {
 			throw exception;
 		}
 		catch (RestClientException exception) {
+			log.error("File Service unavailable, fileId={}", fileId, exception);
 			throw new UpstreamServiceException("File Service is unavailable", exception);
 		}
 	}

@@ -48,7 +48,7 @@ services:
       tempo:
         condition: service_started
     healthcheck:
-      test: ["CMD", "curl", "-f", "-H", "traceparent: 00-11111111111111111111111111111111-1111111111111111-00", "http://localhost:8080/actuator/health/readiness"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness"]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -89,7 +89,7 @@ services:
       tempo:
         condition: service_started
     healthcheck:
-      test: ["CMD", "curl", "-f", "-H", "traceparent: 00-11111111111111111111111111111111-1111111111111111-00", "http://localhost:8080/actuator/health/readiness"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness"]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -127,7 +127,7 @@ services:
       tempo:
         condition: service_started
     healthcheck:
-      test: ["CMD", "curl", "-f", "-H", "traceparent: 00-11111111111111111111111111111111-1111111111111111-00", "http://localhost:8080/actuator/health/readiness"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness"]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -159,7 +159,7 @@ services:
       tempo:
         condition: service_started
     healthcheck:
-      test: ["CMD", "curl", "-f", "-H", "traceparent: 00-11111111111111111111111111111111-1111111111111111-00", "http://localhost:8080/actuator/health/readiness"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness"]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -204,7 +204,7 @@ services:
       tempo:
         condition: service_started
     healthcheck:
-      test: ["CMD", "curl", "-f", "-H", "traceparent: 00-11111111111111111111111111111111-1111111111111111-00", "http://localhost:8080/actuator/health/readiness"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness"]
       interval: 10s
       timeout: 5s
       retries: 6

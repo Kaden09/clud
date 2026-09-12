@@ -205,7 +205,7 @@ services:
       start_period: 15s
 
   postgres:
-    image: postgres:17-alpine
+    image: postgres:17
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -221,7 +221,7 @@ services:
       retries: 5
 
   redis:
-    image: redis:8-alpine
+    image: redis:8
     ports:
       - "127.0.0.1:${REDIS_HOST_PORT}:6379"
     volumes:

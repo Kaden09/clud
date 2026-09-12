@@ -30,7 +30,7 @@ services:
       JWT_SECRET: "${JWT_SECRET:?JWT_SECRET is required. Copy .env.example to .env and set JWT_SECRET}"
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
       REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: "6379"
+      REDIS_PORT: 6379
       OTEL_SERVICE_NAME: gateway
       OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4318
       OTEL_METRICS_EXPORTER: none
@@ -46,7 +46,8 @@ services:
       tempo:
         condition: service_started
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness"]
+      test:
+        ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness"]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -86,7 +87,8 @@ services:
       tempo:
         condition: service_started
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness"]
+      test:
+        ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness"]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -123,7 +125,8 @@ services:
       tempo:
         condition: service_started
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness"]
+      test:
+        ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness"]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -154,7 +157,8 @@ services:
       tempo:
         condition: service_started
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness"]
+      test:
+        ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness"]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -198,7 +202,8 @@ services:
       tempo:
         condition: service_started
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness"]
+      test:
+        ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness"]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -223,7 +228,7 @@ services:
   redis:
     image: redis:8
     ports:
-      - "127.0.0.1:${REDIS_HOST_PORT}:6379"
+      - "127.0.0.1:${REDIS_PORT}:6379"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -273,7 +278,11 @@ services:
     volumes:
       - kafka-data:/var/lib/kafka/data
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1",
+        ]
       interval: 5s
       timeout: 5s
       retries: 12

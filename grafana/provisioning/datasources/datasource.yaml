@@ -22,3 +22,7 @@ datasources:
     url: http://tempo:3200
     access: proxy
     editable: true
+    jsonData:
+      httpMethod: GET
+      serviceMap:
+        datasourceUid: prometheus

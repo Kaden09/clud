@@ -70,7 +70,7 @@ directory so that the matching local `.env` file is loaded.
 | `KAFKA_NODE_ID`, `KAFKA_PROCESS_ROLES`, `KAFKA_PORT` | Local Kafka node configuration |
 | `IDENTITY_*`, `JWT_*`, `CORS_*`, `COOKIE_*` | Identity database and sessions plus shared Gateway token verification and browser CORS |
 | `SHARING_*` | Sharing database, public URL, timeouts, and event topic |
-| `PROMETHEUS_PORT`, `GRAFANA_*`, `LOKI_PORT`, `TEMPO_PORT` | Local observability endpoints and Grafana credentials |
+| `PROMETHEUS_PORT`, `GRAFANA_*`, `LOKI_PORT`, `TEMPO_PORT`, `ALLOY_PORT` | Local observability endpoints and Grafana credentials |
 
 Do not place production credentials in `.env.example`.
 
@@ -166,6 +166,7 @@ at `http://host.docker.internal:8083`. Compose maps
 | Kafka | `localhost:9092` |
 | MinIO API | `http://localhost:9000` |
 | MinIO Console | `http://localhost:9001` |
+| Alloy | `http://localhost:12345` |
 
 Application readiness is available at `/actuator/health/readiness`.
 

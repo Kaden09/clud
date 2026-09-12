@@ -352,14 +352,19 @@ services:
       - ./tempo/tempo.yaml:/etc/tempo.yaml
       - tempo-data:/var/tempo
 
-  promtail:
-    image: grafana/promtail:3.6.11
-    container_name: promtail
+  alloy:
+    image: grafana/alloy:v1.19.1
+    container_name: alloy
     restart: unless-stopped
-    command: -config.file=/etc/promtail/promtail.yaml
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
     volumes:
-      - ./promtail/promtail.yaml:/etc/promtail/promtail.yaml
-      - /var/run/docker.sock:/var/run/docker.sock
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - alloy-data:/var/lib/alloy/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on:
       - loki
 
@@ -372,3 +377,4 @@ volumes:
   prom_data:
   loki-data:
   tempo-data:
+  alloy-data:

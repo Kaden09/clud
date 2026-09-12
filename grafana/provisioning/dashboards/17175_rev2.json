@@ -1009,7 +1009,7 @@
             "uid": "loki"
           },
           "editorMode": "code",
-          "expr": "sum by(detected_level) (rate({service=~\"gateway|identity|file|storage|sharing\"} |= \"$log_keyword\" [1m]))",
+          "expr": "sum by(level) (rate({service=~\"gateway|identity|file|storage|sharing\"} |= \"$log_keyword\" [1m]))",
           "legendFormat": "{{type}}",
           "queryType": "range",
           "refId": "A"
@@ -1048,7 +1048,7 @@
             "uid": "loki"
           },
           "editorMode": "code",
-          "expr": "{service=~\"gateway|identity|file|storage|sharing\"} |= \"$log_keyword\" | line_format \"{{.service}}\\t{{.detected_level}}\\t{{.line}}\"",
+          "expr": "{service=~\"gateway|identity|file|storage|sharing\"} |= \"$log_keyword\" | line_format \"{{.service}}\\t{{.level}}\\t{{.line}}\"",
           "hide": false,
           "queryType": "range",
           "refId": "A"

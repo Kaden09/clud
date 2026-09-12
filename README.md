@@ -21,13 +21,13 @@ traffic to Gateway, which selects the destination service by request path.
 
 ## Services
 
-| Service | Documentation | Host port |
-| --- | --- | --- |
-| Gateway | [gateway/README.md](gateway/README.md) | `8080` |
-| Identity | [identity/README.md](identity/README.md) | `8081` |
-| File | [file/README.md](file/README.md) | `8082` |
-| Storage | [storage/README.md](storage/README.md) | `8083` |
-| Sharing | [sharing/README.md](sharing/README.md) | `8084` |
+| Service  | Documentation                            | Host port |
+| -------- | ---------------------------------------- | --------- |
+| Gateway  | [gateway/README.md](gateway/README.md)   | `8080`    |
+| Identity | [identity/README.md](identity/README.md) | `8081`    |
+| File     | [file/README.md](file/README.md)         | `8082`    |
+| Storage  | [storage/README.md](storage/README.md)   | `8083`    |
+| Sharing  | [sharing/README.md](sharing/README.md)   | `8084`    |
 
 ## Prerequisites
 
@@ -58,29 +58,42 @@ directory so that the matching local `.env` file is loaded.
 
 ### Root variables
 
-| Variable group | Purpose |
-| --- | --- |
-| `NGINX_HOST_PORT`, `*_HOST_PORT` | Ports published from containers to the host |
-| `*_SERVICE_URL` | Internal service addresses inside the Compose network |
-| `POSTGRES_*` | PostgreSQL database, credentials, and host port |
-| `REDIS_PORT` | Redis host port |
-| `MINIO_*` | MinIO credentials and API/console ports |
-| `KAFKA_BOOTSTRAP_SERVERS` | Kafka address supplied to application containers |
-| `KAFKA_NODE_ID`, `KAFKA_PROCESS_ROLES`, `KAFKA_PORT` | Local Kafka node configuration |
-| `IDENTITY_*`, `JWT_*`, `CORS_*`, `COOKIE_*` | Identity database and sessions plus shared Gateway token verification and browser CORS |
-| `SHARING_*` | Sharing database, public URL, timeouts, and event topic |
+| Variable group                                                          | Purpose                                                            |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `NGINX_HOST_PORT`, `*_HOST_PORT`                                        | Ports published from containers to the host                        |
+| `*_SERVICE_URL`                                                         | Internal service addresses inside the Compose network              |
+| `POSTGRES_*`                                                            | PostgreSQL database, credentials, and host port                    |
+| `REDIS_HOST`                                                            | Internal Redis address supplied to Gateway                         |
+| `REDIS_PORT`                                                            | Redis port published to the host                                   |
+| `MINIO_*`                                                               | MinIO credentials and API/console ports                            |
+| `KAFKA_BOOTSTRAP_SERVERS`                                               | Kafka address supplied to application containers                   |
+| `KAFKA_NODE_ID`, `KAFKA_PROCESS_ROLES`, `KAFKA_PORT`                    | Local Kafka node configuration                                     |
+| `IDENTITY_*`, `JWT_*`, `CORS_*`, `COOKIE_*`                             | Identity events, authentication, tokens, cookies, and browser CORS |
+| `FILE_*`                                                                | File events and Storage HTTP timeouts                              |
+| `SHARING_*`                                                             | Sharing public URL, HTTP timeouts, and event topic                 |
+| `PROMETHEUS_PORT`, `GRAFANA_*`, `LOKI_PORT`, `TEMPO_PORT`, `ALLOY_PORT` | Local observability endpoints and Grafana credentials              |
 
 Do not place production credentials in `.env.example`.
 
 ## Full Docker startup
 
-Create the root environment file and start the complete stack:
+Create the root environment file:
 
 ```bash
 cp .env.example .env
+openssl rand -base64 32
+```
+
+Paste the generated value into `JWT_SECRET` in `.env`. Gateway and Identity
+must always use the same secret. Then start the complete stack:
+
+```bash
 docker compose up -d --build
 docker compose ps
 ```
+
+Published ports are bound to `127.0.0.1` and are available only on the local
+machine.
 
 Follow logs or stop the stack:
 
@@ -113,6 +126,11 @@ cp .env.example .env
 ./mvnw spring-boot:run
 ```
 
+Set `JWT_SECRET` in `gateway/.env` to the same value as in the root `.env` so
+that Gateway can verify tokens issued by the Dockerized Identity service. If a
+published infrastructure port was changed in the root `.env`, update its local
+address in `gateway/.env` as well.
+
 When Gateway runs locally, Nginx is intentionally bypassed because its current
 upstream points to the Docker `gateway` service. Start test requests directly
 at `http://localhost:8080`.
@@ -122,7 +140,7 @@ at `http://localhost:8080`.
 Start infrastructure and the remaining downstream services:
 
 ```bash
-docker compose up -d postgres redis minio kafka identity storage sharing
+docker compose up -d postgres redis minio kafka identity storage
 ```
 
 Start File on the host:
@@ -142,25 +160,30 @@ FILE_SERVICE_URL=http://host.docker.internal:8082 \
 ```
 
 The same approach works for Identity or Sharing by replacing the corresponding
-Gateway service URL. For a locally running Storage service, point File Service
-at `http://host.docker.internal:8083`. Compose maps
-`host.docker.internal` to the Linux host.
+Gateway service URL. The Gateway container maps `host.docker.internal` to the
+Linux host. When Identity runs locally, configure it with the same `JWT_SECRET`
+as Gateway.
 
-## Local ports
+## Default local ports
 
-| Component | Address |
-| --- | --- |
-| Nginx | `http://localhost:80` |
-| Gateway | `http://localhost:8080` |
-| Identity | `http://localhost:8081` |
-| File | `http://localhost:8082` |
-| Storage | `http://localhost:8083` |
-| Sharing | `http://localhost:8084` |
-| PostgreSQL | `localhost:5432` |
-| Redis | `localhost:6379` |
-| Kafka | `localhost:9092` |
-| MinIO API | `http://localhost:9000` |
-| MinIO Console | `http://localhost:9001` |
+| Component     | Address                  |
+| ------------- | ------------------------ |
+| Nginx         | `http://localhost:80`    |
+| Gateway       | `http://localhost:8080`  |
+| Identity      | `http://localhost:8081`  |
+| File          | `http://localhost:8082`  |
+| Storage       | `http://localhost:8083`  |
+| Sharing       | `http://localhost:8084`  |
+| PostgreSQL    | `localhost:5432`         |
+| Redis         | `localhost:6379`         |
+| Kafka         | `localhost:9092`         |
+| MinIO API     | `http://localhost:9000`  |
+| MinIO Console | `http://localhost:9001`  |
+| Prometheus    | `http://localhost:9090`  |
+| Grafana       | `http://localhost:3001`  |
+| Loki          | `http://localhost:3100`  |
+| Tempo         | `http://localhost:3200`  |
+| Alloy         | `http://localhost:12345` |
 
 Application readiness is available at `/actuator/health/readiness`.
 
@@ -174,13 +197,13 @@ Kafka has separate addresses:
 Every service exposes Swagger UI at `/docs` and its OpenAPI document at
 `/v3/api-docs`.
 
-| Service | Swagger UI | OpenAPI document |
-| --- | --- | --- |
-| Gateway | `http://localhost:8080/docs` | `http://localhost:8080/v3/api-docs` |
+| Service  | Swagger UI                   | OpenAPI document                    |
+| -------- | ---------------------------- | ----------------------------------- |
+| Gateway  | `http://localhost:8080/docs` | `http://localhost:8080/v3/api-docs` |
 | Identity | `http://localhost:8081/docs` | `http://localhost:8081/v3/api-docs` |
-| File | `http://localhost:8082/docs` | `http://localhost:8082/v3/api-docs` |
-| Storage | `http://localhost:8083/docs` | `http://localhost:8083/v3/api-docs` |
-| Sharing | `http://localhost:8084/docs` | `http://localhost:8084/v3/api-docs` |
+| File     | `http://localhost:8082/docs` | `http://localhost:8082/v3/api-docs` |
+| Storage  | `http://localhost:8083/docs` | `http://localhost:8083/v3/api-docs` |
+| Sharing  | `http://localhost:8084/docs` | `http://localhost:8084/v3/api-docs` |
 
 Gateway Swagger UI also lists the routed Identity, File, and Sharing
 specifications. Storage remains internal and is intentionally not routed through
@@ -188,11 +211,11 @@ Gateway.
 
 ## Gateway routes
 
-| Public path | Destination |
-| --- | --- |
-| `/api/identity/**` | Identity |
-| `/api/files/**` | File |
-| `/api/sharing/**` | Sharing |
+| Public path        | Destination |
+| ------------------ | ----------- |
+| `/api/identity/**` | Identity    |
+| `/api/files/**`    | File        |
+| `/api/sharing/**`  | Sharing     |
 
 Gateway removes the first two path segments before forwarding a request. It
 also preserves an incoming `X-Request-ID` or generates one when absent.
@@ -281,22 +304,22 @@ The removal of old domain codes is an intentional API contract change: clients u
 `NODE_NOT_FOUND`, `EMAIL_ALREADY_EXISTS`, `INVALID_ACCESS_TOKEN`, etc. must switch to
 HTTP status / standard code handling.
 
-| HTTP | Code | Meaning |
-| --- | --- | --- |
-| 400 | `BAD_REQUEST` | Invalid JSON, parameters, or validation |
-| 401 | `UNAUTHORIZED` | Missing, invalid, or expired authentication |
-| 403 | `FORBIDDEN` | Access denied |
-| 404 | `NOT_FOUND` | Endpoint or resource does not exist |
-| 405 | `METHOD_NOT_ALLOWED` | Unsupported method; `Allow` is preserved |
-| 406 | `NOT_ACCEPTABLE` | Unsupported response media type |
-| 409 | `CONFLICT` | Email, name, or concurrent update conflict |
-| 410 | `GONE` | Expired public link |
-| 413 | `CONTENT_TOO_LARGE` | Request exceeds its size limit |
-| 415 | `UNSUPPORTED_MEDIA_TYPE` | Unsupported request type or preview format |
-| 500 | `INTERNAL_SERVER_ERROR` | Unexpected application/storage failure |
-| 502 | `BAD_GATEWAY` | Gateway cannot reach upstream; File cannot reach Storage |
-| 503 | `SERVICE_UNAVAILABLE` | Service/dependency temporarily unavailable |
-| 504 | `GATEWAY_TIMEOUT` | Gateway upstream request timed out |
+| HTTP | Code                     | Meaning                                                  |
+| ---- | ------------------------ | -------------------------------------------------------- |
+| 400  | `BAD_REQUEST`            | Invalid JSON, parameters, or validation                  |
+| 401  | `UNAUTHORIZED`           | Missing, invalid, or expired authentication              |
+| 403  | `FORBIDDEN`              | Access denied                                            |
+| 404  | `NOT_FOUND`              | Endpoint or resource does not exist                      |
+| 405  | `METHOD_NOT_ALLOWED`     | Unsupported method; `Allow` is preserved                 |
+| 406  | `NOT_ACCEPTABLE`         | Unsupported response media type                          |
+| 409  | `CONFLICT`               | Email, name, or concurrent update conflict               |
+| 410  | `GONE`                   | Expired public link                                      |
+| 413  | `CONTENT_TOO_LARGE`      | Request exceeds its size limit                           |
+| 415  | `UNSUPPORTED_MEDIA_TYPE` | Unsupported request type or preview format               |
+| 500  | `INTERNAL_SERVER_ERROR`  | Unexpected application/storage failure                   |
+| 502  | `BAD_GATEWAY`            | Gateway cannot reach upstream; File cannot reach Storage |
+| 503  | `SERVICE_UNAVAILABLE`    | Service/dependency temporarily unavailable               |
+| 504  | `GATEWAY_TIMEOUT`        | Gateway upstream request timed out                       |
 
 Validation example (the timestamp follows the same contract as above):
 

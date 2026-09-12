@@ -2,11 +2,13 @@ package dev.file.clud.content;
 
 import java.util.UUID;
 
+import dev.file.clud.error.FileSizeLimitExceededException;
 import dev.file.clud.error.InvalidNodeOperationException;
 import dev.file.clud.node.entity.FileNode;
 import dev.file.clud.node.service.FileNodeService;
 import dev.file.clud.storage.StorageClient;
 import dev.file.clud.storage.StoredObjectResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -19,6 +21,9 @@ public class FileContentService {
     private final StorageClient storageClient;
     private final TransactionTemplate transactionTemplate;
 
+    @Value("${clud.file.max-file-bytes}")
+    private long maxFileBytes;
+
     public FileContentService(
             FileNodeService fileNodeService,
             StorageClient storageClient,
@@ -29,12 +34,18 @@ public class FileContentService {
     }
 
     public FileNode upload(UUID ownerId, UUID parentId, MultipartFile file) {
+        if (file.getSize() > maxFileBytes) {
+            throw new FileSizeLimitExceededException(
+                    "File exceeds the maximum allowed size of " + maxFileBytes + " bytes");
+        }
         if (file.isEmpty()) {
             throw new InvalidNodeOperationException("File must not be empty");
         }
         String name = safeFileName(file.getOriginalFilename());
         transactionTemplate.executeWithoutResult(status ->
                 fileNodeService.validateUploadTarget(ownerId, parentId, name));
+
+        fileNodeService.ensureWithinBucketQuota(ownerId, file.getSize());
 
         StoredObjectResponse stored = storageClient.store(file);
         try {

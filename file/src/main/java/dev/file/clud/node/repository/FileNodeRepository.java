@@ -9,8 +9,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import dev.file.clud.node.entity.FileNode;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface FileNodeRepository extends JpaRepository<FileNode, UUID> {
+
+    @Query("SELECT COALESCE(SUM(n.sizeBytes), 0L) FROM FileNode n WHERE n.ownerId = :ownerId AND n.sizeBytes IS NOT NULL")
+    long sumSizeBytesForOwner(@Param("ownerId") UUID ownerId);
 
     Optional<FileNode> findByIdAndOwnerId(UUID id, UUID ownerId);
 

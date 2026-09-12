@@ -89,6 +89,22 @@ public class ApiExceptionHandler {
 				Map.of());
 	}
 
+	@ExceptionHandler(StorageQuotaExceededException.class)
+	ResponseEntity<ApiError> handleQuotaExceeded(
+			StorageQuotaExceededException exception,
+			HttpServletRequest request) {
+		log.warn("Storage quota exceeded: uri={}, message={}", request.getRequestURI(), exception.getMessage());
+		return error(HttpStatus.CONTENT_TOO_LARGE, exception.getMessage(), request, Map.of());
+	}
+
+	@ExceptionHandler(FileSizeLimitExceededException.class)
+	ResponseEntity<ApiError> handleFileTooLarge(
+			FileSizeLimitExceededException exception,
+			HttpServletRequest request) {
+		log.warn("File too large: uri={}, message={}", request.getRequestURI(), exception.getMessage());
+		return error(HttpStatus.CONTENT_TOO_LARGE, exception.getMessage(), request, Map.of());
+	}
+
 	private ResponseEntity<ApiError> error(
 			HttpStatus status,
 			String message,

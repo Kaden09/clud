@@ -63,12 +63,14 @@ directory so that the matching local `.env` file is loaded.
 | `NGINX_HOST_PORT`, `*_HOST_PORT` | Ports published from containers to the host |
 | `*_SERVICE_URL` | Internal service addresses inside the Compose network |
 | `POSTGRES_*` | PostgreSQL database, credentials, and host port |
-| `REDIS_PORT` | Redis host port |
+| `REDIS_HOST`, `REDIS_PORT` | Redis address supplied to application containers |
+| `REDIS_HOST_PORT` | Redis port published to the host |
 | `MINIO_*` | MinIO credentials and API/console ports |
 | `KAFKA_BOOTSTRAP_SERVERS` | Kafka address supplied to application containers |
 | `KAFKA_NODE_ID`, `KAFKA_PROCESS_ROLES`, `KAFKA_PORT` | Local Kafka node configuration |
 | `IDENTITY_*`, `JWT_*`, `CORS_*`, `COOKIE_*` | Identity database and sessions plus shared Gateway token verification and browser CORS |
 | `SHARING_*` | Sharing database, public URL, timeouts, and event topic |
+| `PROMETHEUS_PORT`, `GRAFANA_*`, `LOKI_PORT`, `TEMPO_PORT` | Local observability endpoints and Grafana credentials |
 
 Do not place production credentials in `.env.example`.
 
@@ -81,6 +83,9 @@ cp .env.example .env
 docker compose up -d --build
 docker compose ps
 ```
+
+Published ports are bound to `127.0.0.1` and are available only on the local
+machine.
 
 Follow logs or stop the stack:
 

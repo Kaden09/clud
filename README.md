@@ -206,8 +206,8 @@ document; it only proxies the public service specifications.
 | Sharing  | `http://localhost:8084/docs` | `http://localhost:8084/v3/api-docs` |
 
 The public specifications are available through Gateway at
-`/api/identity/api-docs`, `/api/files/api-docs`, and
-`/api/sharing/api-docs`.
+`/api/identity/v3/api-docs`, `/api/files/v3/api-docs`, and
+`/api/sharing/v3/api-docs`.
 Storage remains internal and is intentionally not routed through Gateway.
 
 ## Gateway routes
@@ -217,12 +217,12 @@ Storage remains internal and is intentionally not routed through Gateway.
 | `/api/identity/**`         | Identity         |
 | `/api/files/**`            | File             |
 | `/api/sharing/**`          | Sharing          |
-| `/api/identity/api-docs`   | Identity OpenAPI |
-| `/api/files/api-docs`      | File OpenAPI     |
-| `/api/sharing/api-docs`    | Sharing OpenAPI  |
+| `/api/identity/v3/api-docs` | Identity OpenAPI |
+| `/api/files/v3/api-docs`    | File OpenAPI     |
+| `/api/sharing/v3/api-docs`  | Sharing OpenAPI  |
 
-Gateway removes the first two path segments from `/api/**` routes. OpenAPI
-proxy routes are rewritten to `/v3/api-docs`. Gateway also preserves an
+Gateway removes the first two path segments from `/api/**` routes, including
+the OpenAPI requests above. Gateway also preserves an
 incoming `X-Request-ID` or generates one when absent.
 Gateway validates Identity access tokens for protected API routes, removes any
 client-provided `X-User-ID`, and forwards the authenticated token subject as

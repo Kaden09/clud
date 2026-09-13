@@ -68,9 +68,12 @@ relies on its rewritten `X-Forwarded-For` header.
 Gateway does not host Swagger UI or generate its own OpenAPI document. It only
 proxies the public service specifications:
 
-- `/api/identity/api-docs`
-- `/api/files/api-docs`
-- `/api/sharing/api-docs`
+- `/api/identity/v3/api-docs`
+- `/api/files/v3/api-docs`
+- `/api/sharing/v3/api-docs`
+
+These documents use the regular service routes; after `StripPrefix=2`, each
+request reaches the standard `/v3/api-docs` endpoint upstream.
 
 Storage documentation is intentionally not proxied because Storage has no
 public Gateway route.

@@ -155,7 +155,7 @@ class GatewayIntegrationTests {
             assertThat(response.statusCode()).isEqualTo(404);
         }
 
-        HttpResponse<String> storageResponse = send(authorizedGet("/api/storage/api-docs"));
+        HttpResponse<String> storageResponse = send(authorizedGet("/api/storage/v3/api-docs"));
         assertThat(storageResponse.statusCode()).isEqualTo(404);
     }
 
@@ -426,9 +426,9 @@ class GatewayIntegrationTests {
 
     private static Stream<String> openApiRoutes() {
         return Stream.of(
-                "/api/identity/api-docs",
-                "/api/files/api-docs",
-                "/api/sharing/api-docs");
+                "/api/identity/v3/api-docs",
+                "/api/files/v3/api-docs",
+                "/api/sharing/v3/api-docs");
     }
 
     private static JwtEncoder jwtEncoder(String encodedSecret) {

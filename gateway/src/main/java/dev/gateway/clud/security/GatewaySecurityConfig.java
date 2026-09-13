@@ -78,9 +78,9 @@ public class GatewaySecurityConfig {
                         .requestMatchers(
                                 "/api/identity/auth/**",
                                 "/api/sharing/public/**",
-                                "/api/identity/api-docs",
-                                "/api/files/api-docs",
-                                "/api/sharing/api-docs",
+                                "/api/identity/v3/api-docs",
+                                "/api/files/v3/api-docs",
+                                "/api/sharing/v3/api-docs",
                                 "/actuator/health/**",
                                 "/actuator/prometheus/**").permitAll()
                         .requestMatchers("/actuator/**").denyAll()

@@ -15,28 +15,28 @@ import dev.sharing.clud.error.UpstreamServiceException;
 
 @Slf4j
 @Component
-public class FileServiceClient {
+public class DriveServiceClient {
 
 	private static final String USER_ID_HEADER = "X-User-ID";
 
-	private final RestClient fileServiceRestClient;
+	private final RestClient driveServiceRestClient;
 
-	public FileServiceClient(@Qualifier("fileServiceRestClient") RestClient fileServiceRestClient) {
-		this.fileServiceRestClient = fileServiceRestClient;
+	public DriveServiceClient(@Qualifier("driveServiceRestClient") RestClient driveServiceRestClient) {
+		this.driveServiceRestClient = driveServiceRestClient;
 	}
 
 	public FileNodeResponse getActiveFile(UUID ownerId, UUID fileId) {
 		try {
-			FileNodeResponse response = fileServiceRestClient.get()
+			FileNodeResponse response = driveServiceRestClient.get()
 					.uri("/internal/nodes/{nodeId}", fileId)
 					.header(USER_ID_HEADER, ownerId.toString())
 					.retrieve()
                     .onStatus(status -> status.is5xxServerError(), (request, upstreamResponse) -> {
-						throw new UpstreamServiceException("File Service is unavailable", null);
+						throw new UpstreamServiceException("Drive Service is unavailable", null);
 					})
 					.body(FileNodeResponse.class);
 			if (response == null) {
-				throw new UpstreamServiceException("File Service returned an empty response", null);
+				throw new UpstreamServiceException("Drive Service returned an empty response", null);
 			}
 			if (response.type() != FileNodeResponse.NodeType.FILE) {
 				throw new InvalidShareOperationException("Only files can have public links");
@@ -50,8 +50,8 @@ public class FileServiceClient {
 			throw exception;
 		}
 		catch (RestClientException exception) {
-			log.error("File Service unavailable, fileId={}", fileId, exception);
-			throw new UpstreamServiceException("File Service is unavailable", exception);
+			log.error("Drive Service unavailable, fileId={}", fileId, exception);
+			throw new UpstreamServiceException("Drive Service is unavailable", exception);
 		}
 	}
 }

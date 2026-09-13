@@ -13,8 +13,8 @@ import org.springframework.web.client.RestClient;
 public class HttpClientConfiguration {
 
 	@Bean
-	RestClient fileServiceRestClient(
-			@Value("${clud.sharing.file-service-url}") String baseUrl,
+	RestClient driveServiceRestClient(
+			@Value("${clud.sharing.drive-service-url}") String baseUrl,
 			@Value("${clud.sharing.http.connect-timeout:2s}") Duration connectTimeout,
 			@Value("${clud.sharing.http.read-timeout:5s}") Duration readTimeout) {
 		return restClient(baseUrl, connectTimeout, readTimeout);

@@ -22,7 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
-        "IDENTITY_SERVICE_URL=http://localhost:1", "FILE_SERVICE_URL=http://localhost:1",
+        "IDENTITY_SERVICE_URL=http://localhost:1", "DRIVE_SERVICE_URL=http://localhost:1",
         "SHARING_SERVICE_URL=http://localhost:1",
         "JWT_SECRET=Y2x1ZC1kZXZlbG9wbWVudC1qd3Qtc2VjcmV0LTMyYiE="
 })

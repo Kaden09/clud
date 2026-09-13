@@ -23,8 +23,8 @@ spring:
                 - Path=/api/identity/**
               filters:
                 - StripPrefix=2
-            - id: file
-              uri: ${FILE_SERVICE_URL}
+            - id: drive
+              uri: ${DRIVE_SERVICE_URL}
               predicates:
                 - Path=/api/files/**
               filters:

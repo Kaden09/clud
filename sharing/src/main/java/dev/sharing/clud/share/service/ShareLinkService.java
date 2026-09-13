@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import dev.sharing.clud.client.FileNodeResponse;
-import dev.sharing.clud.client.FileServiceClient;
+import dev.sharing.clud.client.DriveServiceClient;
 import dev.sharing.clud.error.ShareLinkExpiredException;
 import dev.sharing.clud.error.ShareLinkNotFoundException;
 import dev.sharing.clud.event.FileSharedEvent;
@@ -30,7 +30,7 @@ public class ShareLinkService {
 
 	private final ShareLinkRepository repository;
 	private final ShareTokenService tokenService;
-	private final FileServiceClient fileServiceClient;
+	private final DriveServiceClient driveServiceClient;
 	private final ApplicationEventPublisher eventPublisher;
 	private final TransactionTemplate transactionTemplate;
 	private final PreviewPolicy previewPolicy;
@@ -39,7 +39,7 @@ public class ShareLinkService {
 	private String publicBaseUrl;
 
 	public CreatedShareLinkResponse create(UUID ownerId, CreateShareLinkRequest request) {
-		fileServiceClient.getActiveFile(ownerId, request.fileId());
+		driveServiceClient.getActiveFile(ownerId, request.fileId());
 		ShareTokenService.GeneratedToken token = tokenService.generate();
 
 		return transactionTemplate.execute(status -> {
@@ -98,7 +98,7 @@ public class ShareLinkService {
 			throw new ShareLinkExpiredException();
 		}
 
-		FileNodeResponse file = fileServiceClient.getActiveFile(link.getOwnerId(), link.getFileId());
+		FileNodeResponse file = driveServiceClient.getActiveFile(link.getOwnerId(), link.getFileId());
 		return new PublicShareFile(
 				file.id(),
 				file.storageKey(),

@@ -14,10 +14,10 @@ scrape_configs:
       - targets: ['identity:8080']
 
 
-  - job_name: 'file'
+  - job_name: 'drive'
     metrics_path: /actuator/prometheus
     static_configs:
-      - targets: [ 'file:8080' ]
+      - targets: [ 'drive:8080' ]
 
 
   - job_name: 'storage'

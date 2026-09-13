@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 import dev.gateway.clud.config.RateLimitProperties;
+import dev.gateway.clud.ratelimit.RateLimitFilter;
 import jakarta.servlet.DispatcherType;
 
 import javax.crypto.SecretKey;
@@ -14,6 +15,7 @@ import dev.gateway.clud.security.handler.RestAccessDeniedHandler;
 import dev.gateway.clud.security.handler.RestAuthenticationEntryPoint;
 import dev.gateway.clud.security.jwt.GatewayJwtProperties;
 import dev.gateway.clud.security.jwt.TrustedUserHeaderFilter;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -41,8 +43,24 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class GatewaySecurityConfig {
 
     @Bean
+    FilterRegistrationBean<RateLimitFilter> rateLimitFilterRegistration(RateLimitFilter filter) {
+        FilterRegistrationBean<RateLimitFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
+    FilterRegistrationBean<TrustedUserHeaderFilter> trustedUserHeaderFilterRegistration(
+            TrustedUserHeaderFilter filter) {
+        FilterRegistrationBean<TrustedUserHeaderFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
+            RateLimitFilter rateLimitFilter,
             TrustedUserHeaderFilter trustedUserHeaderFilter,
             RestAuthenticationEntryPoint authenticationEntryPoint,
             RestAccessDeniedHandler accessDeniedHandler,
@@ -60,14 +78,12 @@ public class GatewaySecurityConfig {
                         .requestMatchers(
                                 "/api/identity/auth/**",
                                 "/api/sharing/public/**",
-                                "/api/identity/v3/api-docs/**",
-                                "/api/files/v3/api-docs/**",
-                                "/api/sharing/v3/api-docs/**",
-                                "/v3/api-docs/**",
-                                "/docs/**",
-                                "/swagger-ui/**",
+                                "/v3/api-docs/identity",
+                                "/v3/api-docs/files",
+                                "/v3/api-docs/sharing",
                                 "/actuator/health/**",
                                 "/actuator/prometheus/**").permitAll()
+                        .requestMatchers("/actuator/**").denyAll()
                         .requestMatchers("/api/files/internal/**").denyAll()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll())
@@ -75,7 +91,8 @@ public class GatewaySecurityConfig {
                         .jwt(Customizer.withDefaults())
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler))
-                .addFilterAfter(trustedUserHeaderFilter, BearerTokenAuthenticationFilter.class)
+                .addFilterAfter(rateLimitFilter, BearerTokenAuthenticationFilter.class)
+                .addFilterAfter(trustedUserHeaderFilter, RateLimitFilter.class)
                 .build();
     }
 
@@ -89,6 +106,12 @@ public class GatewaySecurityConfig {
                 .build();
 
         OAuth2TokenValidator<Jwt> accessTokenValidator = token -> {
+            if (!token.getAudience().contains(properties.getAudience())) {
+                return OAuth2TokenValidatorResult.failure(new OAuth2Error(
+                        "invalid_token",
+                        "Token audience is not accepted",
+                        null));
+            }
             if (!"access".equals(token.getClaimAsString("type"))) {
                 return OAuth2TokenValidatorResult.failure(new OAuth2Error(
                         "invalid_token",
@@ -114,7 +137,7 @@ public class GatewaySecurityConfig {
             }
         };
         decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
-                JwtValidators.createDefault(),
+                JwtValidators.createDefaultWithIssuer(properties.getIssuer()),
                 accessTokenValidator));
         return decoder;
     }
@@ -125,7 +148,12 @@ public class GatewaySecurityConfig {
         configuration.setAllowedOrigins(properties.getAllowedOrigins());
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Request-ID"));
-        configuration.setExposedHeaders(List.of("X-Request-ID"));
+        configuration.setExposedHeaders(List.of(
+                "X-Request-ID",
+                "X-RateLimit-Limit",
+                "X-RateLimit-Remaining",
+                "X-RateLimit-Reset",
+                "Retry-After"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 

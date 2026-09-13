@@ -19,6 +19,12 @@ public class GatewayJwtProperties {
     @NotBlank(message = "JWT secret must not be blank")
     private String secret;
 
+    @NotBlank(message = "JWT issuer must not be blank")
+    private String issuer;
+
+    @NotBlank(message = "JWT audience must not be blank")
+    private String audience;
+
     @AssertTrue(message = "JWT secret must be at least 32 bytes after Base64 decoding")
     public boolean isSecretValid() {
         if (secret == null || secret.isBlank()) {

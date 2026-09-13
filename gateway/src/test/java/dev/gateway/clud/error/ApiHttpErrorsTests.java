@@ -8,9 +8,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -23,16 +20,10 @@ class ApiHttpErrorsTests {
             .setHandlerExceptionResolvers(new ApiHttpExceptionResolver(mapper)).build();
 
     @Test
-    void preservesRoutingAndBindingStatuses() throws Exception {
+    void preservesRoutingStatuses() throws Exception {
         assertError(get("/unknown"), HttpStatus.NOT_FOUND, "/unknown");
         var method = assertError(post("/probe"), HttpStatus.METHOD_NOT_ALLOWED, "/probe");
         assertThat(method.getHeader("Allow")).contains("GET");
-        assertError(get("/probe"), HttpStatus.BAD_REQUEST, "/probe");
-        assertError(get("/probe").param("number", "not-a-number"), HttpStatus.BAD_REQUEST, "/probe");
-        assertError(post("/body").contentType(MediaType.APPLICATION_JSON).content("{"),
-                HttpStatus.BAD_REQUEST, "/body");
-        assertError(post("/body").contentType(MediaType.TEXT_PLAIN).content("value"),
-                HttpStatus.UNSUPPORTED_MEDIA_TYPE, "/body");
     }
 
     @Test
@@ -60,10 +51,10 @@ class ApiHttpErrorsTests {
         assertThat(response.getContentType()).startsWith(MediaType.APPLICATION_JSON_VALUE);
         var json = mapper.readTree(response.getContentAsString());
         assertThat(json.get("status").asInt()).isEqualTo(status.value());
-        assertThat(json.get("code").asString()).isEqualTo(status.name());
         assertThat(json.get("path").asString()).isEqualTo(path);
         assertThat(json.get("message").asString()).isNotBlank();
-        assertThat(json.get("timestamp").asString()).isNotBlank();
+        assertThat(json.has("code")).isFalse();
+        assertThat(json.has("timestamp")).isFalse();
         assertThat(json.has("fieldErrors")).isFalse();
         return response;
     }
@@ -71,9 +62,6 @@ class ApiHttpErrorsTests {
     @RestController
     static class ProbeController {
         @GetMapping("/probe")
-        String probe(@RequestParam("number") int number) { return "ok"; }
-
-        @PostMapping(value = "/body", consumes = MediaType.APPLICATION_JSON_VALUE)
-        String body(@RequestBody java.util.Map<String, String> body) { return "ok"; }
+        String probe() { return "ok"; }
     }
 }

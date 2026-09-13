@@ -1,7 +1,6 @@
 package dev.gateway.clud.security.handler;
 
 import java.io.IOException;
-import java.util.Map;
 
 import dev.gateway.clud.error.ApiError;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,6 +22,6 @@ public class SecurityErrorResponseWriter {
         response.setStatus(status);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         jsonMapper.writeValue(response.getOutputStream(),
-                ApiError.of(HttpStatusCode.valueOf(status), message, request.getRequestURI(), Map.of()));
+                ApiError.of(HttpStatusCode.valueOf(status), message, request.getRequestURI()));
     }
 }

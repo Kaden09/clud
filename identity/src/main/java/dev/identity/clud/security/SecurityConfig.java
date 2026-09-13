@@ -48,7 +48,6 @@ public class SecurityConfig {
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers(unknownRoute).permitAll()
-                        .requestMatchers("/auth/**", "/actuator/health/**", "/v3/api-docs/**", "/docs/**", "/swagger-ui/**").permitAll()
                         .requestMatchers("/auth/**", "/actuator/health/**", "/actuator/prometheus/**", "/v3/api-docs/**", "/docs/**", "/swagger-ui/**").permitAll()
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())

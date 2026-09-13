@@ -28,6 +28,8 @@ Access tokens are bearer JWTs. Refresh tokens are HttpOnly cookies whose SHA-256
 | `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka address |
 | `IDENTITY_EVENTS_TOPIC` | `identity.events.v1` | User lifecycle event topic |
 | `JWT_SECRET` | Base64 value | Signing key with at least 32 decoded bytes |
+| `JWT_ISSUER` | `clud-identity` | Issuer written to every token |
+| `JWT_AUDIENCE` | `clud-api` | Audience written to and required on every token |
 | `JWT_ACCESS_TOKEN_EXPIRATION_MS` | `900000` | Access-token lifetime |
 | `JWT_REFRESH_TOKEN_EXPIRATION_MS` | `604800000` | Refresh-token lifetime |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:3000` | Trusted browser origins |

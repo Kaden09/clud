@@ -19,6 +19,12 @@ public class JwtProperties {
     @NotBlank(message = "JWT secret must not be blank")
     private String secret;
 
+    @NotBlank(message = "JWT issuer must not be blank")
+    private String issuer;
+
+    @NotBlank(message = "JWT audience must not be blank")
+    private String audience;
+
     @NotNull(message = "Access token expiration must be set")
     @Positive(message = "Access token expiration must be positive")
     private long accessTokenExpiration;

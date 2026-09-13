@@ -11,11 +11,30 @@ spring:
   http:
     clients:
       connect-timeout: 2s
+      read-timeout: ${GATEWAY_HTTP_READ_TIMEOUT:30s}
   cloud:
     gateway:
       server:
         webmvc:
           routes:
+            - id: identity-openapi
+              uri: ${IDENTITY_SERVICE_URL}
+              predicates:
+                - Path=/v3/api-docs/identity
+              filters:
+                - SetPath=/v3/api-docs
+            - id: file-openapi
+              uri: ${FILE_SERVICE_URL}
+              predicates:
+                - Path=/v3/api-docs/files
+              filters:
+                - SetPath=/v3/api-docs
+            - id: sharing-openapi
+              uri: ${SHARING_SERVICE_URL}
+              predicates:
+                - Path=/v3/api-docs/sharing
+              filters:
+                - SetPath=/v3/api-docs
             - id: identity
               uri: ${IDENTITY_SERVICE_URL}
               predicates:
@@ -34,14 +53,10 @@ spring:
                 - Path=/api/sharing/**
               filters:
                 - StripPrefix=2
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
-    consumer:
-      group-id: ${spring.application.name}
-      auto-offset-reset: earliest
-
 jwt:
   secret: ${JWT_SECRET}
+  issuer: ${JWT_ISSUER:clud-identity}
+  audience: ${JWT_AUDIENCE:clud-api}
 
 app:
   rate-limit:
@@ -55,26 +70,11 @@ app:
         per-minute: 30
     skipped-paths:
       - /actuator/**
-      - /v3/api-docs/**
-      - /docs/**
-      - /swagger-ui/**
+      - /v3/api-docs/identity
+      - /v3/api-docs/files
+      - /v3/api-docs/sharing
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
-
-springdoc:
-  api-docs:
-    path: /v3/api-docs
-  swagger-ui:
-    path: /docs
-    urls:
-      - name: Gateway
-        url: /v3/api-docs
-      - name: Identity
-        url: /api/identity/v3/api-docs
-      - name: File
-        url: /api/files/v3/api-docs
-      - name: Sharing
-        url: /api/sharing/v3/api-docs
 
 management:
   endpoints:
@@ -84,7 +84,7 @@ management:
   metrics:
     distribution:
       percentiles-histogram:
-        http.server.requests: true
+        "[http.server.requests]": true
     tags:
       application: ${spring.application.name}
   endpoint:

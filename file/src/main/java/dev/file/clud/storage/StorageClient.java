@@ -5,7 +5,6 @@ import java.io.OutputStream;
 import dev.file.clud.error.UpstreamStorageException;
 import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
@@ -30,7 +29,7 @@ public class StorageClient {
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .body(body)
                     .retrieve()
-                    .onStatus(HttpStatusCode::isError, (request, upstream) -> {
+                    .onStatus(status -> status.isError(), (request, upstream) -> {
                         throw new UpstreamStorageException(
                                 "Storage Service rejected the object with status " + upstream.getStatusCode(),
                                 null);
@@ -81,7 +80,7 @@ public class StorageClient {
             storageRestClient.delete()
                     .uri("/objects/{storageKey}", storageKey)
                     .retrieve()
-                    .onStatus(HttpStatusCode::isError, (request, upstream) -> {
+                    .onStatus(status -> status.isError(), (request, upstream) -> {
                         throw new UpstreamStorageException(
                                 "Storage Service could not delete the object (status "
                                         + upstream.getStatusCode() + ")",

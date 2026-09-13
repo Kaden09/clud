@@ -43,11 +43,11 @@ public class JwtTokenService {
     }
 
     public UUID extractUserId(String token) {
-        return UUID.fromString(extractClaim(token, Claims::getSubject));
+        return UUID.fromString(extractClaim(token, claims -> claims.getSubject()));
     }
 
     public String extractJti(String token) {
-        return extractClaim(token, Claims::getId);
+        return extractClaim(token, claims -> claims.getId());
     }
 
     private String buildToken(AuthenticatedUser user, long expiration, String type, String jti) {

@@ -4,7 +4,6 @@ import java.util.UUID;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
@@ -32,7 +31,7 @@ public class FileServiceClient {
 					.uri("/internal/nodes/{nodeId}", fileId)
 					.header(USER_ID_HEADER, ownerId.toString())
 					.retrieve()
-					.onStatus(HttpStatusCode::is5xxServerError, (request, upstreamResponse) -> {
+                    .onStatus(status -> status.is5xxServerError(), (request, upstreamResponse) -> {
 						throw new UpstreamServiceException("File Service is unavailable", null);
 					})
 					.body(FileNodeResponse.class);

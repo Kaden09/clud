@@ -30,7 +30,7 @@ public class StorageDownloadGateway {
                     .onStatus(status -> status.value() == 404, (request, upstream) -> {
                         throw new SharedFileNotFoundException(file.fileId());
                     })
-                    .onStatus(HttpStatusCode::isError, (request, upstream) -> {
+                    .onStatus(status -> status.isError(), (request, upstream) -> {
                         throw new UpstreamServiceException(
                                 "Storage Service could not read the shared object (status "
                                         + upstream.getStatusCode() + ")",

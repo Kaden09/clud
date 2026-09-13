@@ -1,6 +1,5 @@
 package dev.identity.clud.session;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
@@ -59,7 +58,7 @@ public class RefreshCookieService {
         }
         return Arrays.stream(request.getCookies())
                 .filter(cookie -> cookie.getName().equals(name))
-                .map(Cookie::getValue)
+                .map(cookie -> cookie.getValue())
                 .findFirst();
     }
 }

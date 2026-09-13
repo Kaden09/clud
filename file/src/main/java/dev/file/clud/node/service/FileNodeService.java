@@ -179,7 +179,7 @@ public class FileNodeService {
 	@Transactional
 	public void emptyTrash(UUID ownerId) {
 		List<FileNode> roots = repository.findByOwnerIdAndTrashRootTrue(ownerId);
-		permanentlyDelete(ownerId, roots.stream().map(FileNode::getId).toList());
+		permanentlyDelete(ownerId, roots.stream().map(node -> node.getId()).toList());
 	}
 
 	private FileNode getActive(UUID ownerId, UUID nodeId) {

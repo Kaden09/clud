@@ -6,8 +6,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
+import dev.file.clud.error.StorageQuotaExceededException;
 import dev.file.clud.storage.StorageClient;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.context.ApplicationEventPublisher;
@@ -30,6 +32,10 @@ public class FileNodeService {
 	private final FileNodeRepository repository;
 	private final ApplicationEventPublisher eventPublisher;
 	private final StorageClient storageClient;
+
+	@Value("${clud.file.quota.max-bytes}")
+	private long maxBucketBytes;
+
 
 	@Transactional
 	public FileNode createFolder(UUID ownerId, CreateFolderRequest request) {
@@ -180,6 +186,14 @@ public class FileNodeService {
 	public void emptyTrash(UUID ownerId) {
 		List<FileNode> roots = repository.findByOwnerIdAndTrashRootTrue(ownerId);
 		permanentlyDelete(ownerId, roots.stream().map(FileNode::getId).toList());
+	}
+
+	public void ensureWithinBucketQuota(UUID ownerId, long additionalBytes) {
+		long used = repository.sumSizeBytesForOwner(ownerId);
+		if(used + additionalBytes > maxBucketBytes) {
+			throw new StorageQuotaExceededException(
+					"Bucket storage quota exceeded: maximum is " + maxBucketBytes + " bytes");
+		}
 	}
 
 	private FileNode getActive(UUID ownerId, UUID nodeId) {

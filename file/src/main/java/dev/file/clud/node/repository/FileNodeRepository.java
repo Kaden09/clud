@@ -7,6 +7,8 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import dev.file.clud.node.entity.FileNode;
 
@@ -14,12 +16,30 @@ public interface FileNodeRepository extends JpaRepository<FileNode, UUID> {
 
     Optional<FileNode> findByIdAndOwnerId(UUID id, UUID ownerId);
 
-    Page<FileNode> findByOwnerIdAndParentIdAndDeletedAtIsNull(
-            UUID ownerId,
-            UUID parentId,
+    @Query("""
+            SELECT node
+            FROM FileNode node
+            WHERE node.ownerId = :ownerId
+              AND node.parent.id = :parentId
+              AND node.deletedAt IS NULL
+            ORDER BY node.type, node.name
+            """)
+    Page<FileNode> findActiveChildren(
+            @Param("ownerId") UUID ownerId,
+            @Param("parentId") UUID parentId,
             Pageable pageable);
 
-    Page<FileNode> findByOwnerIdAndParentIsNullAndDeletedAtIsNull(UUID ownerId, Pageable pageable);
+    @Query("""
+            SELECT node
+            FROM FileNode node
+            WHERE node.ownerId = :ownerId
+              AND node.parent IS NULL
+              AND node.deletedAt IS NULL
+            ORDER BY node.type, node.name
+            """)
+    Page<FileNode> findActiveRootChildren(
+            @Param("ownerId") UUID ownerId,
+            Pageable pageable);
 
     Page<FileNode> findByOwnerIdAndTrashRootTrueOrderByDeletedAtDesc(UUID ownerId, Pageable pageable);
 

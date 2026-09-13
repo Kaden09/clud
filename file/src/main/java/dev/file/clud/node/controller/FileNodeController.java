@@ -15,7 +15,6 @@ import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -108,10 +107,11 @@ public class FileNodeController {
 			@RequestParam(defaultValue = "50") @Min(1) @Max(100) int size) {
 		log.debug("Listing children: ownerId={}, parentId={}, page={}, size={}", ownerId, parentId, page, size);
 
+		PageRequest pageRequest = PageRequest.of(page, size);
 		return mapper.toPageResponse(service.listChildren(
 				ownerId,
 				parentId,
-				PageRequest.of(page, size, Sort.by("type", "name"))));
+				pageRequest));
 	}
 
 	@PatchMapping("/nodes/{nodeId}")

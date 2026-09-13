@@ -27,7 +27,7 @@ jobs:
         service:
           - gateway
           - identity
-          - file
+          - drive
           - storage
           - sharing
 

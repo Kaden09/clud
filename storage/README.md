@@ -1,8 +1,8 @@
 # Storage
 
 Storage is the internal service boundary for binary object operations. It is
-called by File Service and has no public Gateway route. MinIO object names are
-opaque UUIDs; original file names live only in File metadata.
+called by Drive Service and has no public Gateway route. MinIO object names are
+opaque UUIDs; original file names live only in Drive metadata.
 
 ## Environment variables
 
@@ -38,8 +38,8 @@ object stream. The delete operation is reserved for upload compensation and
 future permanent cleanup; normal trash operations do not call it.
 
 The example port matches the port published for this service by Docker
-Compose. To use this local service from a Dockerized File Service, set
-`STORAGE_SERVICE_URL=http://host.docker.internal:8083` for the File container.
+Compose. To use this local service from a Dockerized Drive Service, set
+`STORAGE_SERVICE_URL=http://host.docker.internal:8083` for the Drive container.
 
 See the [root README](../README.md#hybrid-development) for the complete mixed
 startup flow.

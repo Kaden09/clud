@@ -70,8 +70,8 @@ class GatewayFailureIntegrationTests {
                 HttpResponse.BodyHandlers.ofString());
         assertThat(response.statusCode()).isEqualTo(status);
         var json = JsonMapper.builder().build().readTree(response.body());
-        assertThat(json.get("code").asText()).isEqualTo(code);
-        assertThat(json.get("path").asText()).isEqualTo(path);
+        assertThat(json.get("code").asString()).isEqualTo(code);
+        assertThat(json.get("path").asString()).isEqualTo(path);
         assertThat(json.has("fieldErrors")).isFalse();
         assertThat(response.body()).doesNotContain("private backend address");
     }

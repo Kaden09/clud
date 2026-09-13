@@ -20,8 +20,8 @@ class ApiErrorTests {
     void derivesCodeFromStatusAndOmitsEmptyFieldErrors(HttpStatus status) {
         var json = mapper.valueToTree(ApiError.of(status, "Description", "/example", Map.of()));
         assertThat(json.get("status").asInt()).isEqualTo(status.value());
-        assertThat(json.get("code").asText()).isEqualTo(status.name());
-        assertThat(json.get("timestamp").asText()).isNotBlank();
+        assertThat(json.get("code").asString()).isEqualTo(status.name());
+        assertThat(json.get("timestamp").asString()).isNotBlank();
         assertThat(json.has("fieldErrors")).isFalse();
     }
 
@@ -30,7 +30,7 @@ class ApiErrorTests {
         var error = ApiError.of(HttpStatus.BAD_REQUEST, "Invalid \"value\"\n", "/example",
                 Map.of("email", "Must be a valid email address"));
         var json = mapper.readTree(mapper.writeValueAsString(error));
-        assertThat(json.get("message").asText()).isEqualTo(error.message());
-        assertThat(json.get("fieldErrors").get("email").asText()).isEqualTo("Must be a valid email address");
+        assertThat(json.get("message").asString()).isEqualTo(error.message());
+        assertThat(json.get("fieldErrors").get("email").asString()).isEqualTo("Must be a valid email address");
     }
 }

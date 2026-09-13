@@ -26,7 +26,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -41,7 +41,7 @@ class IdentityApiIntegrationTests {
 
     @Container
     @ServiceConnection
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:17-alpine");
+    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:17-alpine");
 
     @LocalServerPort
     private int port;
@@ -59,7 +59,7 @@ class IdentityApiIntegrationTests {
     void cleanDatabase() {
         refreshSessionRepository.deleteAllInBatch();
         userRepository.deleteAllInBatch();
-        clearInvocations(kafkaTemplate);
+        clearInvocations((Object) kafkaTemplate);
     }
 
     @Test

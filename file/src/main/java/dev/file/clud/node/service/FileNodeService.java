@@ -88,11 +88,11 @@ public class FileNodeService {
 	@Transactional(readOnly = true)
 	public Page<FileNode> listChildren(UUID ownerId, UUID parentId, Pageable pageable) {
 		if (parentId == null) {
-			return repository.findByOwnerIdAndParentIsNullAndDeletedAtIsNull(ownerId, pageable);
+			return repository.findActiveRootChildren(ownerId, pageable);
 		}
 		FileNode parent = getActive(ownerId, parentId);
 		ensureFolder(parent);
-		return repository.findByOwnerIdAndParentIdAndDeletedAtIsNull(ownerId, parentId, pageable);
+		return repository.findActiveChildren(ownerId, parentId, pageable);
 	}
 
 	@Transactional(readOnly = true)
@@ -185,7 +185,7 @@ public class FileNodeService {
 	@Transactional
 	public void emptyTrash(UUID ownerId) {
 		List<FileNode> roots = repository.findByOwnerIdAndTrashRootTrue(ownerId);
-		permanentlyDelete(ownerId, roots.stream().map(FileNode::getId).toList());
+		permanentlyDelete(ownerId, roots.stream().map(node -> node.getId()).toList());
 	}
 
 	public void ensureWithinBucketQuota(UUID ownerId, long additionalBytes) {

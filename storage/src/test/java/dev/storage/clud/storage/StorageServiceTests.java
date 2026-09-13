@@ -54,7 +54,7 @@ class StorageServiceTests {
         ArgumentCaptor<PutObjectArgs> arguments = ArgumentCaptor.forClass(PutObjectArgs.class);
         verify(minioClient, times(2)).putObject(arguments.capture());
         assertThat(arguments.getAllValues())
-                .extracting(PutObjectArgs::object)
+                .extracting(argumentsValue -> argumentsValue.object())
                 .containsExactly(firstStored.storageKey(), secondStored.storageKey());
     }
 

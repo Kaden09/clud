@@ -72,7 +72,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private int limitFor(String path) {
         return properties.limits().stream()
                 .filter(rule -> matcher.match(rule.path(), path))
-                .map(RateLimitProperties.PathLimit::perMinute)
+                .map(rule -> rule.perMinute())
                 .findFirst()
                 .orElse(properties.defaultLimitPerMinute());
     }

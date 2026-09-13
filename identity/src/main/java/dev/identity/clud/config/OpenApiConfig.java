@@ -31,8 +31,8 @@ public class OpenApiConfig {
                 api.setComponents(new Components());
             }
             ModelConverters.getInstance().read(ApiError.class).forEach(api.getComponents()::addSchemas);
-            api.getComponents().getSchemas().get("ApiError")
-                    .setRequired(java.util.List.of("timestamp", "status", "code", "message", "path"));
+            Schema<?> apiErrorSchema = (Schema<?>) api.getComponents().getSchemas().get("ApiError");
+            apiErrorSchema.setRequired(java.util.List.of("timestamp", "status", "code", "message", "path"));
             if (api.getPaths() != null) {
                 api.getPaths().values().forEach(path -> path.readOperations().forEach(operation -> {
                     if (!operation.getResponses().containsKey("default")) {

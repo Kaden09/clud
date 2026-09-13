@@ -60,10 +60,10 @@ class ApiHttpErrorsTests {
         assertThat(response.getContentType()).startsWith(MediaType.APPLICATION_JSON_VALUE);
         var json = mapper.readTree(response.getContentAsString());
         assertThat(json.get("status").asInt()).isEqualTo(status.value());
-        assertThat(json.get("code").asText()).isEqualTo(status.name());
-        assertThat(json.get("path").asText()).isEqualTo(path);
-        assertThat(json.get("message").asText()).isNotBlank();
-        assertThat(json.get("timestamp").asText()).isNotBlank();
+        assertThat(json.get("code").asString()).isEqualTo(status.name());
+        assertThat(json.get("path").asString()).isEqualTo(path);
+        assertThat(json.get("message").asString()).isNotBlank();
+        assertThat(json.get("timestamp").asString()).isNotBlank();
         assertThat(json.has("fieldErrors")).isFalse();
         return response;
     }

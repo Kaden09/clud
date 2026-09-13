@@ -29,7 +29,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -51,7 +51,7 @@ class FileApiIntegrationTests {
 
 	@Container
 	@ServiceConnection
-	static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:17-alpine");
+	static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:17-alpine");
 
 	@DynamicPropertySource
 	static void storageProperties(DynamicPropertyRegistry registry) {

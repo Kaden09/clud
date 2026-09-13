@@ -206,7 +206,8 @@ document; it only proxies the public service specifications.
 | Sharing  | `http://localhost:8084/docs` | `http://localhost:8084/v3/api-docs` |
 
 The public specifications are available through Gateway at
-`/v3/api-docs/identity`, `/v3/api-docs/files`, and `/v3/api-docs/sharing`.
+`/api/identity/api-docs`, `/api/files/api-docs`, and
+`/api/sharing/api-docs`.
 Storage remains internal and is intentionally not routed through Gateway.
 
 ## Gateway routes
@@ -216,9 +217,9 @@ Storage remains internal and is intentionally not routed through Gateway.
 | `/api/identity/**`         | Identity         |
 | `/api/files/**`            | File             |
 | `/api/sharing/**`          | Sharing          |
-| `/v3/api-docs/identity`    | Identity OpenAPI |
-| `/v3/api-docs/files`       | File OpenAPI     |
-| `/v3/api-docs/sharing`     | Sharing OpenAPI  |
+| `/api/identity/api-docs`   | Identity OpenAPI |
+| `/api/files/api-docs`      | File OpenAPI     |
+| `/api/sharing/api-docs`    | Sharing OpenAPI  |
 
 Gateway removes the first two path segments from `/api/**` routes. OpenAPI
 proxy routes are rewritten to `/v3/api-docs`. Gateway also preserves an

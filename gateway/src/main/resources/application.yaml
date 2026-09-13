@@ -20,19 +20,19 @@ spring:
             - id: identity-openapi
               uri: ${IDENTITY_SERVICE_URL}
               predicates:
-                - Path=/v3/api-docs/identity
+                - Path=/api/identity/api-docs
               filters:
                 - SetPath=/v3/api-docs
             - id: file-openapi
               uri: ${FILE_SERVICE_URL}
               predicates:
-                - Path=/v3/api-docs/files
+                - Path=/api/files/api-docs
               filters:
                 - SetPath=/v3/api-docs
             - id: sharing-openapi
               uri: ${SHARING_SERVICE_URL}
               predicates:
-                - Path=/v3/api-docs/sharing
+                - Path=/api/sharing/api-docs
               filters:
                 - SetPath=/v3/api-docs
             - id: identity
@@ -70,9 +70,9 @@ app:
         per-minute: 30
     skipped-paths:
       - /actuator/**
-      - /v3/api-docs/identity
-      - /v3/api-docs/files
-      - /v3/api-docs/sharing
+      - /api/identity/api-docs
+      - /api/files/api-docs
+      - /api/sharing/api-docs
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
 

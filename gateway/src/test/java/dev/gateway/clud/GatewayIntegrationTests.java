@@ -144,10 +144,19 @@ class GatewayIntegrationTests {
 
     @Test
     void doesNotHostDocumentationUiOrExposeGatewayAndStorageOpenApi() throws Exception {
-        for (String path : new String[] {"/docs", "/v3/api-docs", "/v3/api-docs/storage"}) {
+        for (String path : new String[] {
+                "/docs",
+                "/v3/api-docs",
+                "/v3/api-docs/identity",
+                "/v3/api-docs/files",
+                "/v3/api-docs/sharing"
+        }) {
             HttpResponse<String> response = send(HttpRequest.newBuilder(gatewayUri(path)).GET().build());
             assertThat(response.statusCode()).isEqualTo(404);
         }
+
+        HttpResponse<String> storageResponse = send(authorizedGet("/api/storage/api-docs"));
+        assertThat(storageResponse.statusCode()).isEqualTo(404);
     }
 
     @Test
@@ -417,9 +426,9 @@ class GatewayIntegrationTests {
 
     private static Stream<String> openApiRoutes() {
         return Stream.of(
-                "/v3/api-docs/identity",
-                "/v3/api-docs/files",
-                "/v3/api-docs/sharing");
+                "/api/identity/api-docs",
+                "/api/files/api-docs",
+                "/api/sharing/api-docs");
     }
 
     private static JwtEncoder jwtEncoder(String encodedSecret) {

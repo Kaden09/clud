@@ -14,7 +14,7 @@ public class FileEventConsumer {
 
 	private final ShareLinkService shareLinkService;
 
-	@KafkaListener(topics = "${clud.sharing.file-events-topic}")
+	@KafkaListener(topics = "${clud.sharing.drive-events-topic}")
 	public void consume(FileLifecycleEvent event) {
 		if (!"FileDeleted".equals(event.eventType())) {
 			return;

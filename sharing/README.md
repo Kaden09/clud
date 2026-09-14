@@ -16,15 +16,15 @@ accesses MinIO directly and never exposes `storageKey` to public callers.
 | `SHARING_DATABASE_URL` | `jdbc:postgresql://localhost:5432/clud` | JDBC URL reachable from the local JVM |
 | `SHARING_DATABASE_USERNAME` | `clud` | PostgreSQL username |
 | `SHARING_DATABASE_PASSWORD` | `clud` | PostgreSQL password |
-| `FILE_SERVICE_URL` | `http://localhost:8082` | Internal File Service address |
+| `DRIVE_SERVICE_URL` | `http://localhost:8082` | Internal Drive Service address |
 | `STORAGE_SERVICE_URL` | `http://localhost:8083` | Internal Storage Service address |
-| `SHARING_HTTP_CONNECT_TIMEOUT` | `2s` | File Service connection timeout |
-| `SHARING_HTTP_READ_TIMEOUT` | `5s` | File Service response timeout |
+| `SHARING_HTTP_CONNECT_TIMEOUT` | `2s` | Drive Service connection timeout |
+| `SHARING_HTTP_READ_TIMEOUT` | `5s` | Drive Service response timeout |
 | `SHARING_STORAGE_HTTP_CONNECT_TIMEOUT` | `2s` | Storage connection timeout |
 | `SHARING_STORAGE_HTTP_READ_TIMEOUT` | `30s` | Storage streaming read timeout |
 | `SHARING_PUBLIC_BASE_URL` | `http://localhost:8084/public` | Prefix returned with a newly created token |
 | `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka address reachable from the local JVM |
-| `FILE_EVENTS_TOPIC` | `file.events.v1` | File lifecycle input topic |
+| `DRIVE_EVENTS_TOPIC` | `drive.events.v1` | File lifecycle input topic |
 | `SHARING_EVENTS_TOPIC` | `sharing.events.v1` | Sharing output topic |
 
 Real environment variables override values from `.env`. The local `.env` file
@@ -32,7 +32,7 @@ is ignored by Git and must not contain committed credentials.
 
 ## Local startup
 
-Start PostgreSQL, Kafka, and File Service, then run Sharing locally:
+Start PostgreSQL, Kafka, and Drive Service, then run Sharing locally:
 
 ```bash
 cp .env.example .env
@@ -50,7 +50,7 @@ Run the integration tests with Docker available:
 Management endpoints receive the trusted `X-User-ID` UUID from the
 authenticated Gateway. Public endpoints require only the unguessable token.
 
-Sharing calls File Service before creating a link and before attempting a
+Sharing calls Drive Service before creating a link and before attempting a
 public download. The file must exist, belong to the stored owner, be active,
 and have type `FILE`.
 
@@ -96,7 +96,7 @@ After the database transaction commits, Sharing publishes `FileShared` to
 `SHARING_EVENTS_TOPIC`. The version 1 payload contains `eventId`, `eventType`,
 `eventVersion`, `occurredAt`, `shareId`, `fileId`, `ownerId`, and `expiresAt`.
 
-Sharing consumes `FileDeleted` from `FILE_EVENTS_TOPIC` and idempotently revokes
+Sharing consumes `FileDeleted` from `DRIVE_EVENTS_TOPIC` and idempotently revokes
 the matching owner's active link. Other file lifecycle events are ignored.
 
 ## OpenAPI

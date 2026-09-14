@@ -35,7 +35,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import dev.sharing.clud.client.FileNodeResponse;
-import dev.sharing.clud.client.FileServiceClient;
+import dev.sharing.clud.client.DriveServiceClient;
 import dev.sharing.clud.event.FileEventConsumer;
 import dev.sharing.clud.event.FileLifecycleEvent;
 import dev.sharing.clud.event.FileSharedEvent;
@@ -72,7 +72,7 @@ class SharingApiIntegrationTests {
 	private int port;
 
 	@MockitoBean
-	private FileServiceClient fileServiceClient;
+	private DriveServiceClient driveServiceClient;
 
 	@MockitoBean
 	private KafkaTemplate<String, Object> kafkaTemplate;
@@ -106,7 +106,7 @@ class SharingApiIntegrationTests {
 	void rotatesTheOnlyActiveLinkAndPublishesFileShared() throws Exception {
 		UUID ownerId = UUID.randomUUID();
 		UUID fileId = UUID.randomUUID();
-		when(fileServiceClient.getActiveFile(ownerId, fileId)).thenReturn(file(fileId));
+		when(driveServiceClient.getActiveFile(ownerId, fileId)).thenReturn(file(fileId));
 
 		CreatedLink first = createLink(ownerId, fileId, null);
 		String firstToken = first.token();
@@ -140,7 +140,7 @@ class SharingApiIntegrationTests {
 	void rejectsExpiredAndRevokedLinks() throws Exception {
 		UUID ownerId = UUID.randomUUID();
 		UUID fileId = UUID.randomUUID();
-		when(fileServiceClient.getActiveFile(ownerId, fileId)).thenReturn(file(fileId));
+		when(driveServiceClient.getActiveFile(ownerId, fileId)).thenReturn(file(fileId));
 
 		ShareTokenService.GeneratedToken expiredToken = tokenService.generate();
 		repository.saveAndFlush(ShareLink.create(
@@ -168,7 +168,7 @@ class SharingApiIntegrationTests {
 	void revokesActiveLinkWhenFileIsDeleted() throws Exception {
 		UUID ownerId = UUID.randomUUID();
 		UUID fileId = UUID.randomUUID();
-		when(fileServiceClient.getActiveFile(ownerId, fileId)).thenReturn(file(fileId));
+		when(driveServiceClient.getActiveFile(ownerId, fileId)).thenReturn(file(fileId));
 		CreatedLink created = createLink(ownerId, fileId, null);
 
 		fileEventConsumer.consume(new FileLifecycleEvent(
@@ -188,7 +188,7 @@ class SharingApiIntegrationTests {
 	void previewsInlineAndDownloadsAsAttachmentWithoutExposingStorageKey() throws Exception {
 		UUID ownerId = UUID.randomUUID();
 		UUID fileId = UUID.randomUUID();
-		when(fileServiceClient.getActiveFile(ownerId, fileId)).thenReturn(file(fileId));
+		when(driveServiceClient.getActiveFile(ownerId, fileId)).thenReturn(file(fileId));
 		CreatedLink created = createLink(ownerId, fileId, null);
 
 		HttpResponse<String> preview = request("GET", "/public/" + created.token() + "/preview", null, null);
@@ -211,7 +211,7 @@ class SharingApiIntegrationTests {
 	void blocksUnsafeInlineTypesButStillAllowsDownload() throws Exception {
 		UUID ownerId = UUID.randomUUID();
 		UUID fileId = UUID.randomUUID();
-		when(fileServiceClient.getActiveFile(ownerId, fileId)).thenReturn(
+		when(driveServiceClient.getActiveFile(ownerId, fileId)).thenReturn(
 				file(fileId, "page.html", "text/html"));
 		CreatedLink created = createLink(ownerId, fileId, null);
 
@@ -230,7 +230,7 @@ class SharingApiIntegrationTests {
 	void returnsNotFoundBeforeStartingAResponseWhenStorageObjectIsMissing() throws Exception {
 		UUID ownerId = UUID.randomUUID();
 		UUID fileId = UUID.randomUUID();
-		when(fileServiceClient.getActiveFile(ownerId, fileId)).thenReturn(
+		when(driveServiceClient.getActiveFile(ownerId, fileId)).thenReturn(
 				file(fileId, "missing.pdf", "application/pdf", MISSING_STORAGE_KEY));
 		CreatedLink created = createLink(ownerId, fileId, null);
 

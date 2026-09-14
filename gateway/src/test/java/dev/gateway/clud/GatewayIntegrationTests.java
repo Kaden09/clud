@@ -66,7 +66,7 @@ class GatewayIntegrationTests {
     static void configureApplication(DynamicPropertyRegistry registry) {
         String upstreamUrl = "http://localhost:" + UPSTREAM.getAddress().getPort();
         registry.add("IDENTITY_SERVICE_URL", () -> upstreamUrl);
-        registry.add("FILE_SERVICE_URL", () -> upstreamUrl);
+        registry.add("DRIVE_SERVICE_URL", () -> upstreamUrl);
         registry.add("SHARING_SERVICE_URL", () -> upstreamUrl);
         registry.add("JWT_SECRET", () -> JWT_SECRET);
     }

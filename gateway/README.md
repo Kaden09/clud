@@ -1,7 +1,7 @@
 # Gateway
 
 Gateway is the public API entry point for Clud. It authenticates bearer access
-tokens, routes requests to Identity, File, and Sharing, propagates an
+tokens, routes requests to Identity, Drive, and Sharing, propagates an
 `X-Request-ID`, and supplies downstream services with a trusted `X-User-ID`.
 
 ## Environment variables
@@ -17,7 +17,7 @@ tokens, routes requests to Identity, File, and Sharing, propagates an
 | `REDIS_PORT` | `6379` | Redis port |
 | `GATEWAY_HTTP_READ_TIMEOUT` | `30s` | Maximum wait between upstream response reads |
 | `IDENTITY_SERVICE_URL` | `http://localhost:8081` | Identity base URL |
-| `FILE_SERVICE_URL` | `http://localhost:8082` | File base URL |
+| `DRIVE_SERVICE_URL` | `http://localhost:8082` | Drive base URL |
 | `SHARING_SERVICE_URL` | `http://localhost:8084` | Sharing base URL |
 
 Real environment variables override values from `.env`. The local `.env` file is ignored by Git and must not contain committed credentials.
@@ -46,7 +46,7 @@ network. Nginx exposes `/actuator/health/**` but returns `404` for every other
 Prometheus, including for authenticated API users.
 
 Storage has no public Gateway route. Clients upload and download binary content
-through File Service endpoints, and internal File metadata routes are denied.
+through Drive Service endpoints, and internal Drive metadata routes are denied.
 
 ## Rate limiting
 

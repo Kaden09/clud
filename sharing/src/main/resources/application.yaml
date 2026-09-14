@@ -36,7 +36,7 @@ spring:
 
 clud:
   sharing:
-    file-service-url: ${FILE_SERVICE_URL:http://localhost:8082}
+    drive-service-url: ${DRIVE_SERVICE_URL:http://localhost:8082}
     storage-service-url: ${STORAGE_SERVICE_URL:http://localhost:8083}
     public-base-url: ${SHARING_PUBLIC_BASE_URL:http://localhost:8084/public}
     http:
@@ -45,7 +45,7 @@ clud:
     storage-http:
       connect-timeout: ${SHARING_STORAGE_HTTP_CONNECT_TIMEOUT:2s}
       read-timeout: ${SHARING_STORAGE_HTTP_READ_TIMEOUT:30s}
-    file-events-topic: ${FILE_EVENTS_TOPIC:file.events.v1}
+    drive-events-topic: ${DRIVE_EVENTS_TOPIC:drive.events.v1}
     events-topic: ${SHARING_EVENTS_TOPIC:sharing.events.v1}
 
 springdoc:

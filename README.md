@@ -10,7 +10,7 @@ infrastructure needed to run the complete system.
 Client -> Nginx -> Gateway
                     |
                     +-> Identity
-                    +-> File -> Storage -> MinIO
+                    +-> Drive -> Storage -> MinIO
                     +-> Sharing
                               |
              PostgreSQL / Redis / Kafka / MinIO
@@ -25,7 +25,7 @@ traffic to Gateway, which selects the destination service by request path.
 | -------- | ---------------------------------------- | --------- |
 | Gateway  | [gateway/README.md](gateway/README.md)   | `8080`    |
 | Identity | [identity/README.md](identity/README.md) | `8081`    |
-| File     | [file/README.md](file/README.md)         | `8082`    |
+| Drive    | [drive/README.md](drive/README.md)       | `8082`    |
 | Storage  | [storage/README.md](storage/README.md)   | `8083`    |
 | Sharing  | [sharing/README.md](sharing/README.md)   | `8084`    |
 
@@ -47,7 +47,7 @@ Create only the files required for the way you are running the project:
 
 ```bash
 cp .env.example .env
-cp file/.env.example file/.env
+cp drive/.env.example drive/.env
 ```
 
 Every service has its own `.env.example` and README with the supported
@@ -69,7 +69,7 @@ directory so that the matching local `.env` file is loaded.
 | `KAFKA_BOOTSTRAP_SERVERS`                                               | Kafka address supplied to application containers                   |
 | `KAFKA_NODE_ID`, `KAFKA_PROCESS_ROLES`, `KAFKA_PORT`                    | Local Kafka node configuration                                     |
 | `IDENTITY_*`, `JWT_*`, `CORS_*`, `COOKIE_*`                             | Identity events, authentication, tokens, cookies, and browser CORS |
-| `FILE_*`                                                                | File events and Storage HTTP timeouts                              |
+| `DRIVE_*`                                                               | Drive events and Storage HTTP timeouts                             |
 | `SHARING_*`                                                             | Sharing public URL, HTTP timeouts, and event topic                 |
 | `PROMETHEUS_PORT`, `GRAFANA_*`, `LOKI_PORT`, `TEMPO_PORT`, `ALLOY_PORT` | Local observability endpoints and Grafana credentials              |
 
@@ -115,7 +115,7 @@ on the host.
 Start infrastructure and all downstream services:
 
 ```bash
-docker compose up -d postgres redis minio kafka identity file storage sharing
+docker compose up -d postgres redis minio kafka identity drive storage sharing
 ```
 
 Then start Gateway with its local addresses:
@@ -135,7 +135,7 @@ When Gateway runs locally, Nginx is intentionally bypassed because its current
 upstream points to the Docker `gateway` service. Start test requests directly
 at `http://localhost:8080`.
 
-### Run File locally with Gateway in Docker
+### Run Drive locally with Gateway in Docker
 
 Start infrastructure and the remaining downstream services:
 
@@ -143,10 +143,10 @@ Start infrastructure and the remaining downstream services:
 docker compose up -d postgres redis minio kafka identity storage
 ```
 
-Start File on the host:
+Start Drive on the host:
 
 ```bash
-cd file
+cd drive
 cp .env.example .env
 ./mvnw spring-boot:run
 ```
@@ -155,7 +155,7 @@ From another shell at the repository root, point the Dockerized Gateway to the
 host service and start the public path:
 
 ```bash
-FILE_SERVICE_URL=http://host.docker.internal:8082 \
+DRIVE_SERVICE_URL=http://host.docker.internal:8082 \
   docker compose up -d gateway nginx
 ```
 
@@ -171,7 +171,7 @@ as Gateway.
 | Nginx         | `http://localhost:80`    |
 | Gateway       | `http://localhost:8080`  |
 | Identity      | `http://localhost:8081`  |
-| File          | `http://localhost:8082`  |
+| Drive         | `http://localhost:8082`  |
 | Storage       | `http://localhost:8083`  |
 | Sharing       | `http://localhost:8084`  |
 | PostgreSQL    | `localhost:5432`         |
@@ -201,7 +201,7 @@ document; it only proxies the public service specifications.
 | Service  | Swagger UI                   | OpenAPI document                    |
 | -------- | ---------------------------- | ----------------------------------- |
 | Identity | `http://localhost:8081/docs` | `http://localhost:8081/v3/api-docs` |
-| File     | `http://localhost:8082/docs` | `http://localhost:8082/v3/api-docs` |
+| Drive    | `http://localhost:8082/docs` | `http://localhost:8082/v3/api-docs` |
 | Storage  | `http://localhost:8083/docs` | `http://localhost:8083/v3/api-docs` |
 | Sharing  | `http://localhost:8084/docs` | `http://localhost:8084/v3/api-docs` |
 
@@ -215,10 +215,10 @@ Storage remains internal and is intentionally not routed through Gateway.
 | Public path                | Destination      |
 | -------------------------- | ---------------- |
 | `/api/identity/**`         | Identity         |
-| `/api/files/**`            | File             |
+| `/api/files/**`            | Drive            |
 | `/api/sharing/**`          | Sharing          |
 | `/api/identity/v3/api-docs` | Identity OpenAPI |
-| `/api/files/v3/api-docs`    | File OpenAPI     |
+| `/api/files/v3/api-docs`    | Drive OpenAPI    |
 | `/api/sharing/v3/api-docs`  | Sharing OpenAPI  |
 
 Gateway removes the first two path segments from `/api/**` routes, including
@@ -234,23 +234,23 @@ the service prefix.
 
 Identity owns registration, login, refresh-token rotation, logout, and the current user profile. Access tokens are bearer JWTs; refresh tokens are HttpOnly cookies backed by hashed PostgreSQL sessions. Successful registration publishes the versioned `UserRegistered` event. See [the Identity Service documentation](identity/README.md) for its API and local setup.
 
-## File metadata service
+## Drive metadata service
 
-The File Service persists files and folders in the `file_service` PostgreSQL
+The Drive Service persists files and folders in the `drive_service` PostgreSQL
 schema. It supports directory browsing, rename, move, recursive trash, restore,
 and versioned Kafka lifecycle events. It orchestrates binary uploads and
 downloads through internal Storage Service UUID keys; clients use only `fileId`.
 
 Business requests receive a trusted `X-User-ID` UUID from Gateway after access
 token validation. Client-provided values are removed before routing. See
-[the File Service documentation](file/README.md) for endpoints, examples,
+[the Drive Service documentation](drive/README.md) for endpoints, examples,
 persistence rules, and event payloads.
 
 ## Public sharing service
 
 The Sharing Service persists one active public link per owner and file in the
 `sharing_service` PostgreSQL schema. It validates ownership and file state
-through File Service, supports optional expiration and revocation, publishes
+through Drive Service, supports optional expiration and revocation, publishes
 `FileShared`, and consumes `FileDeleted` to revoke links.
 
 The public token resolves to safe metadata first. Separate preview and download
@@ -268,7 +268,7 @@ cd gateway
 ./mvnw test
 ```
 
-Use the same command inside `identity`, `file`, `storage`, or `sharing`.
+Use the same command inside `identity`, `drive`, `storage`, or `sharing`.
 GitHub Actions builds and tests all five services independently on pull
 requests and pushes to `dev` or `main`.
 
@@ -291,7 +291,7 @@ security, rate-limit, and local routing failures:
 ```
 
 Gateway forwards completed upstream responses without changing their body. Identity,
-File, Storage, and Sharing currently retain their extended error contract, including
+Drive, Storage, and Sharing currently retain their extended error contract, including
 validation details:
 
 ```json
@@ -333,7 +333,7 @@ HTTP status / standard code handling.
 | 413  | `CONTENT_TOO_LARGE`      | Request exceeds its size limit                           |
 | 415  | `UNSUPPORTED_MEDIA_TYPE` | Unsupported request type or preview format               |
 | 500  | `INTERNAL_SERVER_ERROR`  | Unexpected application/storage failure                   |
-| 502  | `BAD_GATEWAY`            | Gateway cannot reach upstream; File cannot reach Storage |
+| 502  | `BAD_GATEWAY`            | Gateway cannot reach upstream; Drive cannot reach Storage |
 | 503  | `SERVICE_UNAVAILABLE`    | Service/dependency temporarily unavailable               |
 | 504  | `GATEWAY_TIMEOUT`        | Gateway upstream request timed out                       |
 

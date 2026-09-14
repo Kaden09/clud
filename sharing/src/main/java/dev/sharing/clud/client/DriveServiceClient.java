@@ -1,0 +1,57 @@
+package dev.sharing.clud.client;
+
+import java.util.UUID;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+
+import dev.sharing.clud.error.InvalidShareOperationException;
+import dev.sharing.clud.error.SharedFileNotFoundException;
+import dev.sharing.clud.error.UpstreamServiceException;
+
+@Slf4j
+@Component
+public class DriveServiceClient {
+
+	private static final String USER_ID_HEADER = "X-User-ID";
+
+	private final RestClient driveServiceRestClient;
+
+	public DriveServiceClient(@Qualifier("driveServiceRestClient") RestClient driveServiceRestClient) {
+		this.driveServiceRestClient = driveServiceRestClient;
+	}
+
+	public FileNodeResponse getActiveFile(UUID ownerId, UUID fileId) {
+		try {
+			FileNodeResponse response = driveServiceRestClient.get()
+					.uri("/internal/nodes/{nodeId}", fileId)
+					.header(USER_ID_HEADER, ownerId.toString())
+					.retrieve()
+                    .onStatus(status -> status.is5xxServerError(), (request, upstreamResponse) -> {
+						throw new UpstreamServiceException("Drive Service is unavailable", null);
+					})
+					.body(FileNodeResponse.class);
+			if (response == null) {
+				throw new UpstreamServiceException("Drive Service returned an empty response", null);
+			}
+			if (response.type() != FileNodeResponse.NodeType.FILE) {
+				throw new InvalidShareOperationException("Only files can have public links");
+			}
+			return response;
+		}
+		catch (HttpClientErrorException.NotFound exception) {
+			throw new SharedFileNotFoundException(fileId);
+		}
+		catch (InvalidShareOperationException | SharedFileNotFoundException | UpstreamServiceException exception) {
+			throw exception;
+		}
+		catch (RestClientException exception) {
+			log.error("Drive Service unavailable, fileId={}", fileId, exception);
+			throw new UpstreamServiceException("Drive Service is unavailable", exception);
+		}
+	}
+}

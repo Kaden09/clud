@@ -64,7 +64,7 @@ Responsible for:
 - logout;
 - users.
 
-### File Service
+### Drive Service
 
 Responsible for:
 

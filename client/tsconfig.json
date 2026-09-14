@@ -10,6 +10,7 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
+    "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
@@ -19,7 +20,13 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@app/*": ["./app/*"],
+      "@layouts/*": ["./layouts/*"],
+      "@views/*": ["./views/*"],
+      "@widgets/*": ["./widgets/*"],
+      "@features/*": ["./features/*"],
+      "@entities/*": ["./entities/*"],
+      "@shared/*": ["./shared/*"]
     }
   },
   "include": [

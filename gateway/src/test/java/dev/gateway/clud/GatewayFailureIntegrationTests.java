@@ -36,31 +36,31 @@ class GatewayFailureIntegrationTests {
 
     @Test
     void connectionFailureReturnsBadGateway() throws Exception {
-        assertFailure(new ConnectException("private backend address"), 502, "BAD_GATEWAY");
+        assertFailure(new ConnectException("private backend address"), 502);
     }
 
     @Test
     void timeoutReturnsGatewayTimeout() throws Exception {
-        assertFailure(new SocketTimeoutException("private backend address"), 504, "GATEWAY_TIMEOUT");
+        assertFailure(new SocketTimeoutException("private backend address"), 504);
     }
 
     @Test
     void requestFactoryConnectionFailureReturnsBadGateway() throws Exception {
         assertExchangeFailure(new UncheckedIOException(new ConnectException("private backend address")),
-                502, "BAD_GATEWAY");
+                502);
     }
 
     @Test
     void requestFactoryTimeoutReturnsGatewayTimeout() throws Exception {
         assertExchangeFailure(new UncheckedIOException(new SocketTimeoutException("private backend address")),
-                504, "GATEWAY_TIMEOUT");
+                504);
     }
 
-    private void assertFailure(IOException cause, int status, String code) throws Exception {
-        assertExchangeFailure(new ResourceAccessException("private backend address", cause), status, code);
+    private void assertFailure(IOException cause, int status) throws Exception {
+        assertExchangeFailure(new ResourceAccessException("private backend address", cause), status);
     }
 
-    private void assertExchangeFailure(RuntimeException failure, int status, String code) throws Exception {
+    private void assertExchangeFailure(RuntimeException failure, int status) throws Exception {
         // Request construction belongs to the exchange API and is independent of the network.
         when(proxyExchange.request(any())).thenCallRealMethod();
         when(proxyExchange.exchange(any())).thenThrow(failure);
@@ -70,8 +70,11 @@ class GatewayFailureIntegrationTests {
                 HttpResponse.BodyHandlers.ofString());
         assertThat(response.statusCode()).isEqualTo(status);
         var json = JsonMapper.builder().build().readTree(response.body());
-        assertThat(json.get("code").asString()).isEqualTo(code);
+        assertThat(json.get("status").asInt()).isEqualTo(status);
         assertThat(json.get("path").asString()).isEqualTo(path);
+        assertThat(json.get("message").asString()).isNotBlank();
+        assertThat(json.has("code")).isFalse();
+        assertThat(json.has("timestamp")).isFalse();
         assertThat(json.has("fieldErrors")).isFalse();
         assertThat(response.body()).doesNotContain("private backend address");
     }

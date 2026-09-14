@@ -28,6 +28,8 @@ spring:
 
 jwt:
   secret: ${JWT_SECRET}
+  issuer: ${JWT_ISSUER:clud-identity}
+  audience: ${JWT_AUDIENCE:clud-api}
   access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION_MS:900000}
   refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION_MS:604800000}
 

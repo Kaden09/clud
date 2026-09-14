@@ -11,6 +11,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -47,6 +48,8 @@ class GatewayIntegrationTests {
 
     private static final String JWT_SECRET =
             "Y2x1ZC1kZXZlbG9wbWVudC1qd3Qtc2VjcmV0LTMyYiE=";
+    private static final String JWT_ISSUER = "clud-identity";
+    private static final String JWT_AUDIENCE = "clud-api";
     private static final String OTHER_JWT_SECRET = Base64.getEncoder().encodeToString(
             "another-development-jwt-secret-32-bytes".getBytes(StandardCharsets.UTF_8));
     private static final UUID USER_ID = UUID.fromString("7b22152f-93c5-48f1-b1c8-a60647fb7d86");
@@ -129,6 +132,33 @@ class GatewayIntegrationTests {
         assertThat(response.body()).contains("uri=/public/a-valid-public-token-value-123456");
     }
 
+    @ParameterizedTest
+    @MethodSource("openApiRoutes")
+    void proxiesPublicOpenApiDocuments(String publicPath) throws Exception {
+        HttpResponse<String> response = send(
+                HttpRequest.newBuilder(gatewayUri(publicPath)).GET().build());
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body()).contains("method=GET", "uri=/v3/api-docs", "userId=null");
+    }
+
+    @Test
+    void doesNotHostDocumentationUiOrExposeGatewayAndStorageOpenApi() throws Exception {
+        for (String path : new String[] {
+                "/docs",
+                "/v3/api-docs",
+                "/v3/api-docs/identity",
+                "/v3/api-docs/files",
+                "/v3/api-docs/sharing"
+        }) {
+            HttpResponse<String> response = send(HttpRequest.newBuilder(gatewayUri(path)).GET().build());
+            assertThat(response.statusCode()).isEqualTo(404);
+        }
+
+        HttpResponse<String> storageResponse = send(authorizedGet("/api/storage/v3/api-docs"));
+        assertThat(storageResponse.statusCode()).isEqualTo(404);
+    }
+
     @Test
     void rejectsProtectedRouteWithoutAccessToken() throws Exception {
         HttpResponse<String> response = send(
@@ -136,7 +166,7 @@ class GatewayIntegrationTests {
 
         assertThat(response.statusCode()).isEqualTo(401);
         assertThat(response.body()).contains(
-                "\"code\":\"UNAUTHORIZED\"",
+                "\"status\":401",
                 "\"path\":\"/api/files/nodes\"");
         assertThat(response.headers().firstValue(RequestIdFilter.REQUEST_ID_HEADER)).isPresent();
     }
@@ -194,6 +224,30 @@ class GatewayIntegrationTests {
     }
 
     @Test
+    void rejectsAccessTokenWithInvalidIssuer() throws Exception {
+        HttpRequest request = bearer(
+                HttpRequest.newBuilder(gatewayUri("/api/files/nodes")),
+                token(JWT_ENCODER, USER_ID.toString(), "access", Instant.now().plusSeconds(300),
+                        "another-issuer", JWT_AUDIENCE))
+                .GET()
+                .build();
+
+        assertThat(send(request).statusCode()).isEqualTo(401);
+    }
+
+    @Test
+    void rejectsAccessTokenWithInvalidAudience() throws Exception {
+        HttpRequest request = bearer(
+                HttpRequest.newBuilder(gatewayUri("/api/files/nodes")),
+                token(JWT_ENCODER, USER_ID.toString(), "access", Instant.now().plusSeconds(300),
+                        JWT_ISSUER, "another-api"))
+                .GET()
+                .build();
+
+        assertThat(send(request).statusCode()).isEqualTo(401);
+    }
+
+    @Test
     void replacesClientProvidedUserIdWithAuthenticatedSubject() throws Exception {
         HttpRequest request = authorized(HttpRequest.newBuilder(gatewayUri("/api/files/nodes")))
                 .header(TrustedUserHeaderFilter.USER_ID_HEADER, SPOOFED_USER_ID.toString())
@@ -234,6 +288,12 @@ class GatewayIntegrationTests {
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.headers().firstValue("Access-Control-Allow-Origin"))
                 .contains("http://localhost:3000");
+        assertThat(response.headers().firstValue("Access-Control-Expose-Headers"))
+                .hasValueSatisfying(headers -> assertThat(headers).contains(
+                        "X-RateLimit-Limit",
+                        "X-RateLimit-Remaining",
+                        "X-RateLimit-Reset",
+                        "Retry-After"));
     }
 
     @Test
@@ -255,7 +315,7 @@ class GatewayIntegrationTests {
         HttpResponse<String> response = send(authorizedGet("/api/files/internal/nodes/1"));
 
         assertThat(response.statusCode()).isEqualTo(403);
-        assertThat(response.body()).contains("\"code\":\"FORBIDDEN\"");
+        assertThat(response.body()).contains("\"status\":403");
     }
 
     @Test
@@ -305,12 +365,24 @@ class GatewayIntegrationTests {
     }
 
     @Test
+    void exposesPrometheusButDeniesOtherActuatorEndpoints() throws Exception {
+        HttpResponse<String> prometheus = send(
+                HttpRequest.newBuilder(gatewayUri("/actuator/prometheus")).GET().build());
+        assertThat(prometheus.statusCode()).isEqualTo(200);
+
+        for (String path : new String[] {"/actuator", "/actuator/info", "/actuator/metrics"}) {
+            HttpResponse<String> response = send(authorizedGet(path));
+            assertThat(response.statusCode()).as(path).isEqualTo(403);
+        }
+    }
+
+    @Test
     void localUnknownPathsUseTheApiErrorContract() throws Exception {
         for (String path : new String[] {"/", "/unknown", "/error"}) {
             HttpResponse<String> response = send(HttpRequest.newBuilder(gatewayUri(path)).GET().build());
             assertThat(response.statusCode()).isEqualTo(404);
-            assertThat(response.body()).contains("\"code\":\"NOT_FOUND\"", "\"path\":\"" + path + "\"")
-                    .doesNotContain("fieldErrors");
+            assertThat(response.body()).contains("\"status\":404", "\"path\":\"" + path + "\"")
+                    .doesNotContain("code", "timestamp", "fieldErrors");
         }
     }
 
@@ -352,6 +424,13 @@ class GatewayIntegrationTests {
                 Arguments.of("/api/sharing/links/1", "/links/1"));
     }
 
+    private static Stream<String> openApiRoutes() {
+        return Stream.of(
+                "/api/identity/v3/api-docs",
+                "/api/files/v3/api-docs",
+                "/api/sharing/v3/api-docs");
+    }
+
     private static JwtEncoder jwtEncoder(String encodedSecret) {
         SecretKey key = new SecretKeySpec(
                 Base64.getDecoder().decode(encodedSecret),
@@ -364,10 +443,22 @@ class GatewayIntegrationTests {
             String subject,
             String type,
             Instant expiresAt) {
+        return token(encoder, subject, type, expiresAt, JWT_ISSUER, JWT_AUDIENCE);
+    }
+
+    private static String token(
+            JwtEncoder encoder,
+            String subject,
+            String type,
+            Instant expiresAt,
+            String issuer,
+            String audience) {
         Instant issuedAt = expiresAt.isAfter(Instant.now())
                 ? Instant.now().minusSeconds(1)
                 : expiresAt.minusSeconds(60);
         JwtClaimsSet claims = JwtClaimsSet.builder()
+                .issuer(issuer)
+                .audience(List.of(audience))
                 .subject(subject)
                 .claim("email", "user@example.com")
                 .claim("type", type)

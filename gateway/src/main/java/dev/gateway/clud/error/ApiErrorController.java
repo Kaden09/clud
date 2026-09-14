@@ -1,7 +1,5 @@
 package dev.gateway.clud.error;
 
-import java.util.Map;
-
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** JSON fallback for servlet error dispatches that do not reach exception advice. */
 @Slf4j
 @RestController
 public class ApiErrorController implements ErrorController {
@@ -32,6 +29,6 @@ public class ApiErrorController implements ErrorController {
             }
         }
         return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON)
-                .body(ApiError.of(status, ApiError.defaultMessage(status), path, Map.of()));
+                .body(ApiError.of(status, ApiError.defaultMessage(status), path));
     }
 }

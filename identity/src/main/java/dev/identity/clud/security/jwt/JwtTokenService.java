@@ -52,6 +52,8 @@ public class JwtTokenService {
 
     private String buildToken(AuthenticatedUser user, long expiration, String type, String jti) {
         var builder = Jwts.builder()
+                .issuer(properties.getIssuer())
+                .audience().add(properties.getAudience()).and()
                 .subject(user.getId().toString())
                 .claim("email", user.getEmail())
                 .claim("type", type)
@@ -71,6 +73,8 @@ public class JwtTokenService {
     private Claims extractAllClaims(String token) {
         try {
             return Jwts.parser()
+                    .requireIssuer(properties.getIssuer())
+                    .requireAudience(properties.getAudience())
                     .verifyWith(signingKey)
                     .build()
                     .parseSignedClaims(token)

@@ -194,31 +194,36 @@ Kafka has separate addresses:
 
 ## OpenAPI
 
-Every service exposes Swagger UI at `/docs` and its OpenAPI document at
-`/v3/api-docs`.
+API services expose Swagger UI at `/docs` and their OpenAPI document at
+`/v3/api-docs`. Gateway does not host Swagger UI or generate its own OpenAPI
+document; it only proxies the public service specifications.
 
 | Service  | Swagger UI                   | OpenAPI document                    |
 | -------- | ---------------------------- | ----------------------------------- |
-| Gateway  | `http://localhost:8080/docs` | `http://localhost:8080/v3/api-docs` |
 | Identity | `http://localhost:8081/docs` | `http://localhost:8081/v3/api-docs` |
 | File     | `http://localhost:8082/docs` | `http://localhost:8082/v3/api-docs` |
 | Storage  | `http://localhost:8083/docs` | `http://localhost:8083/v3/api-docs` |
 | Sharing  | `http://localhost:8084/docs` | `http://localhost:8084/v3/api-docs` |
 
-Gateway Swagger UI also lists the routed Identity, File, and Sharing
-specifications. Storage remains internal and is intentionally not routed through
-Gateway.
+The public specifications are available through Gateway at
+`/api/identity/v3/api-docs`, `/api/files/v3/api-docs`, and
+`/api/sharing/v3/api-docs`.
+Storage remains internal and is intentionally not routed through Gateway.
 
 ## Gateway routes
 
-| Public path        | Destination |
-| ------------------ | ----------- |
-| `/api/identity/**` | Identity    |
-| `/api/files/**`    | File        |
-| `/api/sharing/**`  | Sharing     |
+| Public path                | Destination      |
+| -------------------------- | ---------------- |
+| `/api/identity/**`         | Identity         |
+| `/api/files/**`            | File             |
+| `/api/sharing/**`          | Sharing          |
+| `/api/identity/v3/api-docs` | Identity OpenAPI |
+| `/api/files/v3/api-docs`    | File OpenAPI     |
+| `/api/sharing/v3/api-docs`  | Sharing OpenAPI  |
 
-Gateway removes the first two path segments before forwarding a request. It
-also preserves an incoming `X-Request-ID` or generates one when absent.
+Gateway removes the first two path segments from `/api/**` routes, including
+the OpenAPI requests above. Gateway also preserves an
+incoming `X-Request-ID` or generates one when absent.
 Gateway validates Identity access tokens for protected API routes, removes any
 client-provided `X-User-ID`, and forwards the authenticated token subject as
 the trusted user header. Refresh cookies use the public browser path
@@ -274,9 +279,20 @@ PostgreSQL, Redis, Kafka, and MinIO use named Docker volumes. A regular
 
 ## API error contract
 
-All five applications use the same JSON error contract for controller, HTTP routing,
-security, and servlet error responses. Successful DTOs, streams, and empty responses
-retain their existing formats.
+Gateway-generated errors use a minimal contract because Gateway only owns proxy,
+security, rate-limit, and local routing failures:
+
+```json
+{
+  "status": 502,
+  "message": "The upstream service could not be reached",
+  "path": "/api/identity/auth/login"
+}
+```
+
+Gateway forwards completed upstream responses without changing their body. Identity,
+File, Storage, and Sharing currently retain their extended error contract, including
+validation details:
 
 ```json
 {
@@ -339,7 +355,8 @@ Validation example (the timestamp follows the same contract as above):
 
 ## Routing and security
 
-Direct `GET /` on ports 8080–8084 returns `404 / NOT_FOUND`. Identity uses the registered
+Direct `GET /` returns `404`; backend services currently also include `NOT_FOUND` in the
+response body. Identity uses the registered
 controller path patterns to let missing endpoints reach MVC; all registered protected
 controllers remain authenticated by default. Matching ignores the method so an unsupported
 method cannot bypass authentication. Actuator retains its own existing security rules.
@@ -371,5 +388,4 @@ tests functional-route connection failures/timeouts and unchanged upstream error
 The Compose smoke job starts the complete stack, waits for its health checks, and sends one
 request through Nginx. Detailed error contract cases remain in the service tests. Gateway
 integration tests deterministically
-verify connection failures as `502 / BAD_GATEWAY` and timeouts as
-`504 / GATEWAY_TIMEOUT`.
+verify connection failures as `502` and timeouts as `504`.

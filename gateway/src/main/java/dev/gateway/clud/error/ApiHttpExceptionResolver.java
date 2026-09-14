@@ -9,8 +9,6 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -20,17 +18,13 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
-import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.client.ResourceAccessException;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.handler.AbstractHandlerExceptionResolver;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Handles HTTP failures before domain advice, including resource and functional handlers. */
 @Component
 public class ApiHttpExceptionResolver extends AbstractHandlerExceptionResolver {
 
@@ -53,25 +47,14 @@ public class ApiHttpExceptionResolver extends AbstractHandlerExceptionResolver {
             status = error.getStatusCode();
             headers.putAll(error.getHeaders());
         }
-        else if (exception instanceof HttpMessageNotReadableException
-                || exception instanceof MethodArgumentTypeMismatchException) {
-            status = HttpStatus.BAD_REQUEST;
-        }
-        else if (upstreamFailureStatus(request, exception) != null) {
-            status = upstreamFailureStatus(request, exception);
-        }
         else {
-            return null; // Unhandled failures reach the servlet JSON error controller.
+            status = upstreamFailureStatus(request, exception);
+            if (status == null) {
+                return null; // Unhandled failures reach the servlet JSON error controller.
+            }
         }
 
-        Map<String, String> fields = new LinkedHashMap<>();
         String message = ApiError.defaultMessage(status);
-        if (exception instanceof MethodArgumentNotValidException validation) {
-            validation.getBindingResult().getFieldErrors().forEach(error ->
-                    fields.putIfAbsent(error.getField(), error.getDefaultMessage() == null
-                            ? "Invalid value" : error.getDefaultMessage()));
-            message = "Request validation failed";
-        }
         if (status.is5xxServerError()) {
             logger.error("HTTP request failed at " + request.getRequestURI(), exception);
         }
@@ -81,7 +64,7 @@ public class ApiHttpExceptionResolver extends AbstractHandlerExceptionResolver {
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             if (!"HEAD".equals(request.getMethod())) {
                 jsonMapper.writeValue(response.getOutputStream(),
-                        ApiError.of(status, message, request.getRequestURI(), fields));
+                        ApiError.of(status, message, request.getRequestURI()));
             }
             return new ModelAndView();
         }

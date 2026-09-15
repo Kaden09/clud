@@ -78,7 +78,9 @@ public class GatewaySecurityConfig {
                         .requestMatchers(
                                 "/api/identity/auth/**",
                                 "/api/sharing/public/**",
-                                "/api/identity/v3/api-docs",
+                                "/api/identity/v3/api-docs/**",
+                                "/api/identity/swagger-ui.html",
+                                "/api/identity/swagger-ui/**",
                                 "/api/files/v3/api-docs",
                                 "/api/sharing/v3/api-docs",
                                 "/actuator/health/**",

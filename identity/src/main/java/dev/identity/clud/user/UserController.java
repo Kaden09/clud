@@ -2,6 +2,7 @@ package dev.identity.clud.user;
 
 import dev.identity.clud.security.principal.AuthenticatedUser;
 import dev.identity.clud.user.dto.UserResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
     @GetMapping("/me")
+    @SecurityRequirement(name = "bearerAuth")
     public UserResponse getCurrentUser(@AuthenticationPrincipal AuthenticatedUser user) {
         return UserResponse.from(user);
     }

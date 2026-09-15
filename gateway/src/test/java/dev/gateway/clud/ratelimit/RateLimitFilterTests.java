@@ -57,7 +57,7 @@ class RateLimitFilterTests {
         assertThat(response.getHeader("X-RateLimit-Limit")).isEqualTo("10");
         assertThat(response.getHeader("X-RateLimit-Remaining")).isEqualTo("0");
         assertThat(response.getHeader("X-RateLimit-Reset")).isEqualTo("43");
-        assertThat(response.getContentAsString()).contains("\"status\":429");
+        assertThat(response.getContentAsString()).contains("\"code\":\"TOO_MANY_REQUESTS\"");
         verify(chain, never()).doFilter(any(), any());
     }
 
@@ -87,7 +87,7 @@ class RateLimitFilterTests {
         filter.doFilter(request, response, chain);
 
         assertThat(response.getStatus()).isEqualTo(503);
-        assertThat(response.getContentAsString()).contains("\"status\":503");
+        assertThat(response.getContentAsString()).contains("\"code\":\"SERVICE_UNAVAILABLE\"");
         verify(chain, never()).doFilter(any(), any());
     }
 

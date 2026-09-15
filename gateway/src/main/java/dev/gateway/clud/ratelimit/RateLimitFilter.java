@@ -73,7 +73,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 return;
             }
             log.error("Rate limiter unavailable, rejecting request", exception);
-            errorWriter.write(request, response, SERVICE_UNAVAILABLE,
+            errorWriter.write(response, SERVICE_UNAVAILABLE,
                     "Rate limiter is temporarily unavailable. Try again later.");
             return;
         }
@@ -86,7 +86,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         if (state.count() > limit.maxRequests()) {
             response.setHeader(RETRY_AFTER, Long.toString(resetSeconds));
-            errorWriter.write(request, response, TOO_MANY_REQUESTS,
+            errorWriter.write(response, TOO_MANY_REQUESTS,
                     "Rate limit exceeded. Try again in " + resetSeconds + " seconds.");
             return;
         }

@@ -34,10 +34,9 @@ Access tokens are bearer JWTs. Refresh tokens are HttpOnly cookies whose SHA-256
 | `JWT_REFRESH_TOKEN_EXPIRATION_MS` | `604800000` | Refresh-token lifetime |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:3000` | Trusted browser origins |
 | `COOKIE_SECURE` | `false` | Enable for HTTPS |
-| `COOKIE_SAME_SITE` | `Lax` | Refresh-cookie SameSite policy |
 | `COOKIE_PATH` | `/api/identity/auth` | Public browser cookie path |
 
-Real environment variables override `.env`. Flyway owns the `identity_service` schema; Hibernate only validates it.
+Refresh cookies are always `HttpOnly` and `SameSite=Lax`; CSRF token handling is intentionally out of scope for the pet-project MVP. Real environment variables override `.env`. Flyway owns the `identity_service` schema; Hibernate only validates it.
 
 ## Local startup
 
@@ -45,6 +44,8 @@ Start PostgreSQL and Kafka, then run:
 
 ```bash
 cp .env.example .env
+JWT_SECRET=$(openssl rand -base64 32)
+# Set JWT_SECRET in .env to the generated value.
 ./mvnw spring-boot:run
 ```
 
@@ -54,7 +55,7 @@ Run the integration suite with Docker available:
 ./mvnw --batch-mode --no-transfer-progress verify
 ```
 
-Swagger UI is available at `http://localhost:8081/docs`; the OpenAPI document is at `/v3/api-docs`.
+Swagger UI is available directly from Identity at `http://localhost:8081/swagger-ui.html` and through Gateway at `http://localhost:8080/api/identity/swagger-ui.html`. The OpenAPI document is available at `/v3/api-docs` and through Gateway at `/api/identity/v3/api-docs`.
 
 To use a locally running Identity with Dockerized Gateway, set `IDENTITY_SERVICE_URL=http://host.docker.internal:8081`. The refresh cookie keeps the public `/api/identity/auth` path in both modes.
 

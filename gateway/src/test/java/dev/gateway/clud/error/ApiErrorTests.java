@@ -16,18 +16,15 @@ class ApiErrorTests {
             "NOT_FOUND", "METHOD_NOT_ALLOWED", "CONFLICT", "INTERNAL_SERVER_ERROR",
             "BAD_GATEWAY", "SERVICE_UNAVAILABLE", "GATEWAY_TIMEOUT"})
     void keepsTheMinimalErrorContract(HttpStatus status) {
-        var json = mapper.valueToTree(ApiError.of(status, "Description", "/example"));
-        assertThat(json.get("status").asInt()).isEqualTo(status.value());
+        var json = mapper.valueToTree(ApiError.of(status, "Description"));
+        assertThat(json.get("code").asString()).isEqualTo(status.name());
         assertThat(json.get("message").asString()).isEqualTo("Description");
-        assertThat(json.get("path").asString()).isEqualTo("/example");
-        assertThat(json.has("code")).isFalse();
-        assertThat(json.has("timestamp")).isFalse();
-        assertThat(json.has("fieldErrors")).isFalse();
+        assertThat(json.size()).isEqualTo(2);
     }
 
     @Test
     void escapesJson() {
-        var error = ApiError.of(HttpStatus.BAD_REQUEST, "Invalid \"value\"\n", "/example");
+        var error = ApiError.of(HttpStatus.BAD_REQUEST, "Invalid \"value\"\n");
         var json = mapper.readTree(mapper.writeValueAsString(error));
         assertThat(json.get("message").asString()).isEqualTo(error.message());
     }

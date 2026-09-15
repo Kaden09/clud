@@ -1,5 +1,6 @@
 server:
   port: ${SERVER_PORT:8081}
+  forward-headers-strategy: framework
 
 spring:
   application:
@@ -19,7 +20,7 @@ spring:
       ddl-auto: validate
     properties:
       hibernate:
-        default_schema: identity_service
+        "[default_schema]": identity_service
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
@@ -38,18 +39,11 @@ app:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
   cookie:
     secure: ${COOKIE_SECURE:false}
-    same-site: ${COOKIE_SAME_SITE:Lax}
     path: ${COOKIE_PATH:/api/identity/auth}
 
 clud:
   identity:
     events-topic: ${IDENTITY_EVENTS_TOPIC:identity.events.v1}
-
-springdoc:
-  api-docs:
-    path: /v3/api-docs
-  swagger-ui:
-    path: /docs
 
 management:
   endpoints:
@@ -59,7 +53,7 @@ management:
   metrics:
     distribution:
       percentiles-histogram:
-        http.server.requests: true
+        "[http.server.requests]": true
     tags:
       application: ${spring.application.name}
   endpoint:

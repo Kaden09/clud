@@ -1,7 +1,5 @@
 package dev.identity.clud.error;
 
-import java.util.Map;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -17,20 +15,17 @@ class ApiErrorTests {
     @EnumSource(value = HttpStatus.class, names = {"BAD_REQUEST", "UNAUTHORIZED", "FORBIDDEN",
             "NOT_FOUND", "METHOD_NOT_ALLOWED", "CONFLICT", "INTERNAL_SERVER_ERROR",
             "BAD_GATEWAY", "SERVICE_UNAVAILABLE", "GATEWAY_TIMEOUT"})
-    void derivesCodeFromStatusAndOmitsEmptyFieldErrors(HttpStatus status) {
-        var json = mapper.valueToTree(ApiError.of(status, "Description", "/example", Map.of()));
-        assertThat(json.get("status").asInt()).isEqualTo(status.value());
+    void derivesCodeFromStatusAndKeepsOnlyUsefulFields(HttpStatus status) {
+        var json = mapper.valueToTree(ApiError.of(status, "Description"));
         assertThat(json.get("code").asString()).isEqualTo(status.name());
-        assertThat(json.get("timestamp").asString()).isNotBlank();
-        assertThat(json.has("fieldErrors")).isFalse();
+        assertThat(json.get("message").asString()).isEqualTo("Description");
+        assertThat(json.size()).isEqualTo(2);
     }
 
     @Test
-    void keepsValidationDetailsAndEscapesJson() {
-        var error = ApiError.of(HttpStatus.BAD_REQUEST, "Invalid \"value\"\n", "/example",
-                Map.of("email", "Must be a valid email address"));
+    void escapesJsonMessage() {
+        var error = ApiError.of(HttpStatus.BAD_REQUEST, "Invalid \"value\"\n");
         var json = mapper.readTree(mapper.writeValueAsString(error));
         assertThat(json.get("message").asString()).isEqualTo(error.message());
-        assertThat(json.get("fieldErrors").get("email").asString()).isEqualTo("Must be a valid email address");
     }
 }

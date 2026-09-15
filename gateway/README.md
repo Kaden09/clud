@@ -16,6 +16,7 @@ tokens, routes requests to Identity, Drive, and Sharing, propagates an
 | `REDIS_HOST` | `localhost` | Redis host used for shared rate-limit counters |
 | `REDIS_PORT` | `6379` | Redis port |
 | `GATEWAY_HTTP_READ_TIMEOUT` | `30s` | Maximum wait between upstream response reads |
+| `GATEWAY_TRUSTED_PROXIES` | Loopback and private networks | Regex of reverse-proxy addresses trusted for forwarded headers |
 | `IDENTITY_SERVICE_URL` | `http://localhost:8081` | Identity base URL |
 | `DRIVE_SERVICE_URL` | `http://localhost:8082` | Drive base URL |
 | `SHARING_SERVICE_URL` | `http://localhost:8084` | Sharing base URL |
@@ -33,6 +34,8 @@ Gateway forwards the user ID from the token subject under that header.
 The following paths are public:
 
 - `/api/identity/auth/**`
+- `/api/identity/v3/api-docs/**`
+- `/api/identity/swagger-ui.html` and `/api/identity/swagger-ui/**`
 - `/api/sharing/public/**`
 - `/actuator/health/**`
 
@@ -65,15 +68,17 @@ relies on its rewritten `X-Forwarded-For` header.
 
 ## API documentation
 
-Gateway does not host Swagger UI or generate its own OpenAPI document. It only
-proxies the public service specifications:
+Gateway does not generate its own OpenAPI document. It proxies the public
+service specifications and the Identity Swagger UI used during development:
 
 - `/api/identity/v3/api-docs`
+- `/api/identity/swagger-ui.html`
 - `/api/files/v3/api-docs`
 - `/api/sharing/v3/api-docs`
 
-These documents use the regular service routes; after `StripPrefix=2`, each
-request reaches the standard `/v3/api-docs` endpoint upstream.
+These routes use the regular service route. Gateway derives the trusted
+`X-Forwarded-Prefix: /api/identity` after `StripPrefix=2`, so Swagger redirects
+and configuration retain the public Gateway path.
 
 Storage documentation is intentionally not proxied because Storage has no
 public Gateway route.

@@ -194,13 +194,14 @@ Kafka has separate addresses:
 
 ## OpenAPI
 
-API services expose Swagger UI at `/docs` and their OpenAPI document at
-`/v3/api-docs`. Gateway does not host Swagger UI or generate its own OpenAPI
-document; it only proxies the public service specifications.
+API services expose an OpenAPI document at `/v3/api-docs`. Identity uses the
+default Swagger UI path; the other services retain `/docs` until their MVP
+passes. Gateway does not generate its own OpenAPI document, but proxies the
+Identity Swagger UI for development and the public service specifications.
 
 | Service  | Swagger UI                   | OpenAPI document                    |
 | -------- | ---------------------------- | ----------------------------------- |
-| Identity | `http://localhost:8081/docs` | `http://localhost:8081/v3/api-docs` |
+| Identity | `http://localhost:8081/swagger-ui.html` | `http://localhost:8081/v3/api-docs` |
 | Drive    | `http://localhost:8082/docs` | `http://localhost:8082/v3/api-docs` |
 | Storage  | `http://localhost:8083/docs` | `http://localhost:8083/v3/api-docs` |
 | Sharing  | `http://localhost:8084/docs` | `http://localhost:8084/v3/api-docs` |
@@ -208,6 +209,8 @@ document; it only proxies the public service specifications.
 The public specifications are available through Gateway at
 `/api/identity/v3/api-docs`, `/api/files/v3/api-docs`, and
 `/api/sharing/v3/api-docs`.
+Identity Swagger UI is available through Gateway at
+`/api/identity/swagger-ui.html`.
 Storage remains internal and is intentionally not routed through Gateway.
 
 ## Gateway routes
@@ -284,72 +287,37 @@ security, rate-limit, and local routing failures:
 
 ```json
 {
-  "status": 502,
-  "message": "The upstream service could not be reached",
-  "path": "/api/identity/auth/login"
+  "code": "BAD_GATEWAY",
+  "message": "The upstream service could not be reached"
 }
 ```
 
-Gateway forwards completed upstream responses without changing their body. Identity,
-Drive, Storage, and Sharing currently retain their extended error contract, including
-validation details:
+Gateway forwards completed upstream responses without changing their body. Each service
+owns its error contract and may return a different shape. Identity uses a deliberately
+small response:
 
 ```json
 {
-  "timestamp": "2026-09-06T19:00:00Z",
-  "status": 404,
   "code": "NOT_FOUND",
-  "message": "The requested endpoint does not exist",
-  "path": "/unknown"
+  "message": "The requested endpoint does not exist"
 }
 ```
 
-- `timestamp`: UTC time when the error was created.
-- `status`: the actual HTTP response status, repeated in the body.
-- `code`: the canonical Spring `HttpStatus` enum name for that status. It is derived,
-  never assigned independently. There is no separate domain error catalogue.
+- `code`: the canonical Spring `HttpStatus` enum name derived from the actual response
+  status. There is no separate domain error catalogue.
 - `message`: a safe explanation of this particular failure. Clients should not parse
   it or depend on its exact wording to make decisions.
-- `path`: the request URI seen by the application producing the error, without the query.
-- `fieldErrors`: an optional map from field names to validation messages. It is omitted
-  when empty, including security and server errors. It never contains exception causes.
 
-For example, both an unknown endpoint and a missing file use `404 / NOT_FOUND`, with
-specific descriptions in `message`. Validation and malformed JSON use `400 / BAD_REQUEST`.
-The removal of old domain codes is an intentional API contract change: clients using
-`NODE_NOT_FOUND`, `EMAIL_ALREADY_EXISTS`, `INVALID_ACCESS_TOKEN`, etc. must switch to
-HTTP status / standard code handling.
+The HTTP status is not repeated in the body, the client already knows its request path,
+and timestamps belong in service logs. Validation details are intentionally not exposed;
+validation and malformed JSON both use `400 / BAD_REQUEST` with a safe message.
 
-| HTTP | Code                     | Meaning                                                  |
-| ---- | ------------------------ | -------------------------------------------------------- |
-| 400  | `BAD_REQUEST`            | Invalid JSON, parameters, or validation                  |
-| 401  | `UNAUTHORIZED`           | Missing, invalid, or expired authentication              |
-| 403  | `FORBIDDEN`              | Access denied                                            |
-| 404  | `NOT_FOUND`              | Endpoint or resource does not exist                      |
-| 405  | `METHOD_NOT_ALLOWED`     | Unsupported method; `Allow` is preserved                 |
-| 406  | `NOT_ACCEPTABLE`         | Unsupported response media type                          |
-| 409  | `CONFLICT`               | Email, name, or concurrent update conflict               |
-| 410  | `GONE`                   | Expired public link                                      |
-| 413  | `CONTENT_TOO_LARGE`      | Request exceeds its size limit                           |
-| 415  | `UNSUPPORTED_MEDIA_TYPE` | Unsupported request type or preview format               |
-| 500  | `INTERNAL_SERVER_ERROR`  | Unexpected application/storage failure                   |
-| 502  | `BAD_GATEWAY`            | Gateway cannot reach upstream; Drive cannot reach Storage |
-| 503  | `SERVICE_UNAVAILABLE`    | Service/dependency temporarily unavailable               |
-| 504  | `GATEWAY_TIMEOUT`        | Gateway upstream request timed out                       |
-
-Validation example (the timestamp follows the same contract as above):
+Identity validation example:
 
 ```json
 {
-  "timestamp": "2026-09-06T19:00:00Z",
-  "status": 400,
   "code": "BAD_REQUEST",
-  "message": "Request validation failed",
-  "path": "/auth/register",
-  "fieldErrors": {
-    "email": "must be a well-formed email address",
-    "password": "size must be between 8 and 72"
-  }
+  "message": "Request validation failed"
 }
 ```
 

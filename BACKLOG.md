@@ -100,7 +100,7 @@ Do not create additional microservices without a specific reason.
 
 ### Backend
 
-- Java 21+
+- Java 21
 - Spring Boot
 - Spring Security
 - Spring Data JPA

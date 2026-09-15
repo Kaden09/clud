@@ -12,6 +12,9 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -86,7 +89,7 @@ class IdentityApiIntegrationTests {
 
         HttpResponse<String> duplicate = register("USER@example.com");
         assertThat(duplicate.statusCode()).isEqualTo(409);
-        assertThat(duplicate.body()).contains("CONFLICT");
+        assertSimpleError(duplicate, "CONFLICT", "Email is already registered");
 
         HttpResponse<String> invalid = request(
                 "POST",
@@ -95,7 +98,45 @@ class IdentityApiIntegrationTests {
                 null,
                 null);
         assertThat(invalid.statusCode()).isEqualTo(400);
-        assertThat(invalid.body()).contains("BAD_REQUEST", "email", "password");
+        assertSimpleError(invalid, "BAD_REQUEST", "Request validation failed");
+    }
+
+    @Test
+    void rejectsInvalidCredentialsAndUnavailableAccountsWithoutLeakingDetails() throws Exception {
+        register("user@example.com");
+
+        HttpResponse<String> wrongPassword = request(
+                "POST",
+                "/auth/login",
+                "{\"email\":\"user@example.com\",\"password\":\"WrongPassword123\"}",
+                null,
+                null);
+        assertThat(wrongPassword.statusCode()).isEqualTo(401);
+        assertSimpleError(wrongPassword, "UNAUTHORIZED", "Authentication failed");
+
+        var user = userRepository.findByEmail("user@example.com").orElseThrow();
+        user.setEnabled(false);
+        userRepository.saveAndFlush(user);
+        HttpResponse<String> disabled = request(
+                "POST",
+                "/auth/login",
+                "{\"email\":\"user@example.com\",\"password\":\"Password123\"}",
+                null,
+                null);
+        assertThat(disabled.statusCode()).isEqualTo(401);
+        assertSimpleError(disabled, "UNAUTHORIZED", "Authentication failed");
+
+        user.setEnabled(true);
+        user.setAccountNonLocked(false);
+        userRepository.saveAndFlush(user);
+        HttpResponse<String> locked = request(
+                "POST",
+                "/auth/login",
+                "{\"email\":\"user@example.com\",\"password\":\"Password123\"}",
+                null,
+                null);
+        assertThat(locked.statusCode()).isEqualTo(401);
+        assertSimpleError(locked, "UNAUTHORIZED", "Authentication failed");
     }
 
     @Test
@@ -125,6 +166,39 @@ class IdentityApiIntegrationTests {
                 .hasValueSatisfying(cookie -> assertThat(cookie)
                         .contains("refresh_token=")
                         .contains("Max-Age=0"));
+    }
+
+    @Test
+    void serializesConcurrentRefreshAndRevokesTheRotatedSessionOnReuse() throws Exception {
+        register("user@example.com");
+        Tokens login = login();
+        CountDownLatch start = new CountDownLatch(1);
+
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var requests = List.of(
+                    executor.submit(() -> refreshAfter(start, login.cookie())),
+                    executor.submit(() -> refreshAfter(start, login.cookie())));
+            start.countDown();
+
+            List<HttpResponse<String>> responses = requests.stream().map(future -> {
+                try {
+                    return future.get();
+                }
+                catch (Exception exception) {
+                    throw new AssertionError(exception);
+                }
+            }).toList();
+            assertThat(responses.stream().map(response -> response.statusCode()).toList())
+                    .containsExactlyInAnyOrder(200, 401);
+
+            String rotatedCookie = responses.stream()
+                    .filter(response -> response.statusCode() == 200)
+                    .map(this::cookie)
+                    .findFirst()
+                    .orElseThrow();
+            assertThat(request("POST", "/auth/refresh", null, null, rotatedCookie).statusCode())
+                    .isEqualTo(401);
+        }
     }
 
     @Test
@@ -172,6 +246,39 @@ class IdentityApiIntegrationTests {
     }
 
     @Test
+    void exposesDefaultDocumentationPathsAndSecuritySchemes() throws Exception {
+        HttpResponse<String> openApi = request("GET", "/v3/api-docs", null, null, null);
+        assertThat(openApi.statusCode()).isEqualTo(200);
+        assertThat(openApi.body()).contains("bearerAuth", "refreshCookie");
+
+        HttpResponse<String> swagger = request("GET", "/swagger-ui.html", null, null, null);
+        assertThat(swagger.statusCode()).isIn(200, 302);
+        assertThat(request("GET", "/docs", null, null, null).statusCode()).isEqualTo(404);
+
+        HttpResponse<String> proxiedSwagger = HTTP_CLIENT.send(
+                HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/swagger-ui.html"))
+                        .header("X-Forwarded-Prefix", "/api/identity")
+                        .GET()
+                        .build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertThat(proxiedSwagger.statusCode()).isEqualTo(302);
+        assertThat(proxiedSwagger.headers().firstValue("Location"))
+                .hasValueSatisfying(location -> assertThat(location)
+                        .isEqualTo("/api/identity/swagger-ui/index.html"));
+
+        HttpResponse<String> swaggerConfig = HTTP_CLIENT.send(
+                HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/v3/api-docs/swagger-config"))
+                        .header("X-Forwarded-Prefix", "/api/identity")
+                        .GET()
+                        .build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertThat(swaggerConfig.statusCode()).isEqualTo(200);
+        assertThat(swaggerConfig.body()).contains(
+                "\"configUrl\":\"/api/identity/v3/api-docs/swagger-config\"",
+                "\"url\":\"/api/identity/v3/api-docs\"");
+    }
+
+    @Test
     void unknownRoutesReturnNotFoundWithAndWithoutTokens() throws Exception {
         register("user@example.com");
         Tokens tokens = login();
@@ -179,8 +286,7 @@ class IdentityApiIntegrationTests {
             for (String token : new String[] {null, "invalid-token", tokens.accessToken()}) {
                 HttpResponse<String> response = request("GET", path, null, token, null);
                 assertThat(response.statusCode()).as(path).isEqualTo(404);
-                assertThat(response.body()).contains("\"code\":\"NOT_FOUND\"", "\"path\":\"" + path + "\"")
-                        .doesNotContain("fieldErrors");
+                assertSimpleError(response, "NOT_FOUND", "The requested endpoint does not exist");
             }
         }
     }
@@ -191,9 +297,13 @@ class IdentityApiIntegrationTests {
         register("user@example.com");
         HttpResponse<String> response = request("POST", "/user/me", null, login().accessToken(), null);
         assertThat(response.statusCode()).isEqualTo(405);
-        assertThat(response.body()).contains("METHOD_NOT_ALLOWED").doesNotContain("fieldErrors");
+        assertSimpleError(response, "METHOD_NOT_ALLOWED", "The HTTP method is not supported for this endpoint");
         assertThat(response.headers().firstValue("Allow")).hasValueSatisfying(value -> assertThat(value).contains("GET"));
         assertThat(request("GET", "/actuator/info", null, null, null).statusCode()).isEqualTo(401);
+
+        HttpResponse<String> deniedActuator = request(
+                "GET", "/actuator/info", null, login().accessToken(), null);
+        assertThat(deniedActuator.statusCode()).isEqualTo(403);
     }
 
     private HttpResponse<String> register(String email) throws Exception {
@@ -213,14 +323,26 @@ class IdentityApiIntegrationTests {
                 null,
                 null);
         assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.headers().firstValue("Cache-Control")).contains("no-store");
+        assertThat(response.headers().firstValue("Pragma")).contains("no-cache");
         Matcher matcher = ACCESS_TOKEN.matcher(response.body());
         assertThat(matcher.find()).isTrue();
         return new Tokens(matcher.group(1), cookie(response));
     }
 
+    private HttpResponse<String> refreshAfter(CountDownLatch start, String cookie) throws Exception {
+        start.await();
+        return request("POST", "/auth/refresh", null, null, cookie);
+    }
+
     private String cookie(HttpResponse<String> response) {
         String setCookie = response.headers().firstValue("Set-Cookie").orElseThrow();
         return setCookie.substring(0, setCookie.indexOf(';'));
+    }
+
+    private void assertSimpleError(HttpResponse<String> response, String code, String message) {
+        assertThat(response.body()).isEqualTo(
+                "{\"code\":\"" + code + "\",\"message\":\"" + message + "\"}");
     }
 
     private HttpResponse<String> request(

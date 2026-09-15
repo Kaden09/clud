@@ -48,11 +48,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             String token = authorization.substring(7);
-            var userId = jwtService.extractUserId(token);
+            var userId = jwtService.validateAccessToken(token);
             if (SecurityContextHolder.getContext().getAuthentication() == null) {
                 AuthenticatedUser user = userDetailsService.loadUserById(userId);
-                if (!jwtService.isTokenValid(token, user, "access")
-                        || !user.isEnabled()
+                if (!user.isEnabled()
                         || !user.isAccountNonLocked()) {
                     throw new InvalidTokenException("Invalid access token");
                 }
@@ -65,7 +64,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         catch (InvalidTokenException | UsernameNotFoundException exception) {
             log.warn("Invalid access token rejected: {}", exception.getMessage());
             SecurityContextHolder.clearContext();
-            errorWriter.write(request, response, HttpServletResponse.SC_UNAUTHORIZED, "Invalid access token");
+            errorWriter.write(response, HttpServletResponse.SC_UNAUTHORIZED, "Invalid access token");
             return;
         }
         filterChain.doFilter(request, response);

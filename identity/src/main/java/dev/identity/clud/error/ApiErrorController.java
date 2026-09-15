@@ -1,7 +1,5 @@
 package dev.identity.clud.error;
 
-import java.util.Map;
-
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +30,6 @@ public class ApiErrorController implements ErrorController {
             }
         }
         return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON)
-                .body(ApiError.of(status, ApiError.defaultMessage(status), path, Map.of()));
+                .body(ApiError.of(status, ApiError.defaultMessage(status)));
     }
 }

@@ -2,7 +2,6 @@ package dev.identity.clud.security.jwt;
 
 import java.util.Date;
 import java.util.UUID;
-import java.util.function.Function;
 
 import javax.crypto.SecretKey;
 
@@ -10,6 +9,7 @@ import dev.identity.clud.error.InvalidTokenException;
 import dev.identity.clud.security.principal.AuthenticatedUser;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -21,10 +21,17 @@ public class JwtTokenService {
 
     private final JwtProperties properties;
     private final SecretKey signingKey;
+    private final JwtParser parser;
 
     public JwtTokenService(JwtProperties properties) {
         this.properties = properties;
         this.signingKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(properties.getSecret()));
+        this.parser = Jwts.parser()
+                .requireIssuer(properties.getIssuer())
+                .requireAudience(properties.getAudience())
+                .verifyWith(signingKey)
+                .sig().clear().add(Jwts.SIG.HS256).and()
+                .build();
     }
 
     public String generateAccessToken(AuthenticatedUser user) {
@@ -35,19 +42,13 @@ public class JwtTokenService {
         return buildToken(user, properties.getRefreshTokenExpiration(), "refresh", UUID.randomUUID().toString());
     }
 
-    public boolean isTokenValid(String token, AuthenticatedUser user, String expectedType) {
-        Claims claims = extractAllClaims(token);
-        return user.getId().toString().equals(claims.getSubject())
-                && expectedType.equals(claims.get("type", String.class))
-                && claims.getExpiration().after(new Date());
+    public UUID validateAccessToken(String token) {
+        return validateToken(token, "access", false).userId();
     }
 
-    public UUID extractUserId(String token) {
-        return UUID.fromString(extractClaim(token, claims -> claims.getSubject()));
-    }
-
-    public String extractJti(String token) {
-        return extractClaim(token, claims -> claims.getId());
+    public RefreshTokenClaims validateRefreshToken(String token) {
+        TokenClaims claims = validateToken(token, "refresh", true);
+        return new RefreshTokenClaims(claims.userId(), claims.jti());
     }
 
     private String buildToken(AuthenticatedUser user, long expiration, String type, String jti) {
@@ -55,7 +56,6 @@ public class JwtTokenService {
                 .issuer(properties.getIssuer())
                 .audience().add(properties.getAudience()).and()
                 .subject(user.getId().toString())
-                .claim("email", user.getEmail())
                 .claim("type", type)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expiration))
@@ -66,19 +66,26 @@ public class JwtTokenService {
         return builder.compact();
     }
 
-    private <T> T extractClaim(String token, Function<Claims, T> resolver) {
-        return resolver.apply(extractAllClaims(token));
-    }
-
-    private Claims extractAllClaims(String token) {
+    private TokenClaims validateToken(String token, String expectedType, boolean requireJti) {
         try {
-            return Jwts.parser()
-                    .requireIssuer(properties.getIssuer())
-                    .requireAudience(properties.getAudience())
-                    .verifyWith(signingKey)
-                    .build()
+            Claims claims = parser
                     .parseSignedClaims(token)
                     .getPayload();
+            String subject = claims.getSubject();
+            String type = claims.get("type", String.class);
+            Date issuedAt = claims.getIssuedAt();
+            Date expiration = claims.getExpiration();
+            String jti = claims.getId();
+            if (subject == null || subject.isBlank()
+                    || !expectedType.equals(type)
+                    || issuedAt == null
+                    || issuedAt.after(new Date())
+                    || expiration == null
+                    || !expiration.after(new Date())
+                    || requireJti && (jti == null || jti.isBlank())) {
+                throw new InvalidTokenException("Invalid token claims");
+            }
+            return new TokenClaims(UUID.fromString(subject), jti);
         }
         catch (ExpiredJwtException exception) {
             throw new InvalidTokenException("Token expired");
@@ -86,5 +93,11 @@ public class JwtTokenService {
         catch (JwtException | IllegalArgumentException exception) {
             throw new InvalidTokenException("Invalid token");
         }
+    }
+
+    public record RefreshTokenClaims(UUID userId, String jti) {
+    }
+
+    private record TokenClaims(UUID userId, String jti) {
     }
 }

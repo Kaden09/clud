@@ -1,9 +1,6 @@
 package dev.identity.clud.error;
 
 import java.io.IOException;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.Ordered;
@@ -51,12 +48,8 @@ public class ApiHttpExceptionResolver extends AbstractHandlerExceptionResolver {
             return null; // Domain exceptions remain the responsibility of service advice.
         }
 
-        Map<String, String> fields = new LinkedHashMap<>();
         String message = ApiError.defaultMessage(status);
-        if (exception instanceof MethodArgumentNotValidException validation) {
-            validation.getBindingResult().getFieldErrors().forEach(error ->
-                    fields.putIfAbsent(error.getField(), error.getDefaultMessage() == null
-                            ? "Invalid value" : error.getDefaultMessage()));
+        if (exception instanceof MethodArgumentNotValidException) {
             message = "Request validation failed";
         }
         if (status.is5xxServerError()) {
@@ -67,8 +60,7 @@ public class ApiHttpExceptionResolver extends AbstractHandlerExceptionResolver {
             headers.forEach((name, values) -> values.forEach(value -> response.addHeader(name, value)));
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             if (!"HEAD".equals(request.getMethod())) {
-                jsonMapper.writeValue(response.getOutputStream(),
-                        ApiError.of(status, message, request.getRequestURI(), fields));
+                jsonMapper.writeValue(response.getOutputStream(), ApiError.of(status, message));
             }
             return new ModelAndView();
         }

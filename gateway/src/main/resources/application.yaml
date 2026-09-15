@@ -16,6 +16,12 @@ spring:
     gateway:
       server:
         webmvc:
+          trusted-proxies: '${GATEWAY_TRUSTED_PROXIES:127\.0\.0\.1|0:0:0:0:0:0:0:1|::1|10\..*|192\.168\..*|172\.(1[6-9]|2[0-9]|3[01])\..*}'
+          x-forwarded-request-headers-filter:
+            host-append: false
+            port-append: false
+            proto-append: false
+            prefix-append: false
           routes:
             - id: identity
               uri: ${IDENTITY_SERVICE_URL}
@@ -52,7 +58,9 @@ app:
         per-minute: 30
     skipped-paths:
       - /actuator/**
-      - /api/identity/v3/api-docs
+      - /api/identity/v3/api-docs/**
+      - /api/identity/swagger-ui.html
+      - /api/identity/swagger-ui/**
       - /api/files/v3/api-docs
       - /api/sharing/v3/api-docs
   cors:

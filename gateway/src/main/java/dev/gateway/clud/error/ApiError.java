@@ -4,12 +4,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 
 public record ApiError(
-        int status,
-        String message,
-        String path) {
+        String code,
+        String message) {
 
-    public static ApiError of(HttpStatusCode status, String message, String path) {
-        return new ApiError(status.value(), message, path);
+    public static ApiError of(HttpStatusCode status, String message) {
+        HttpStatus standard = HttpStatus.resolve(status.value());
+        return new ApiError(
+                standard == null ? "HTTP_" + status.value() : standard.name(),
+                message);
     }
 
     public static String defaultMessage(HttpStatusCode status) {

@@ -70,12 +70,9 @@ class GatewayFailureIntegrationTests {
                 HttpResponse.BodyHandlers.ofString());
         assertThat(response.statusCode()).isEqualTo(status);
         var json = JsonMapper.builder().build().readTree(response.body());
-        assertThat(json.get("status").asInt()).isEqualTo(status);
-        assertThat(json.get("path").asString()).isEqualTo(path);
+        assertThat(json.get("code").asString()).isEqualTo(status == 502 ? "BAD_GATEWAY" : "GATEWAY_TIMEOUT");
         assertThat(json.get("message").asString()).isNotBlank();
-        assertThat(json.has("code")).isFalse();
-        assertThat(json.has("timestamp")).isFalse();
-        assertThat(json.has("fieldErrors")).isFalse();
+        assertThat(json.size()).isEqualTo(2);
         assertThat(response.body()).doesNotContain("private backend address");
     }
 }

@@ -29,6 +29,6 @@ public class ApiErrorController implements ErrorController {
             }
         }
         return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON)
-                .body(ApiError.of(status, ApiError.defaultMessage(status), path));
+                .body(ApiError.of(status, ApiError.defaultMessage(status)));
     }
 }

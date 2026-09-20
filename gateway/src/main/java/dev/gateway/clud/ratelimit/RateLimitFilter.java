@@ -20,6 +20,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Component
@@ -48,6 +49,16 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final StringRedisTemplate redis;
     private final SecurityErrorResponseWriter errorWriter;
     private final AntPathMatcher matcher = new AntPathMatcher();
+    private final Pattern trustedProxies;
+
+    public RateLimitFilter(RateLimitProperties properties,
+                           StringRedisTemplate redis,
+                           SecurityErrorResponseWriter errorWriter) {
+        this.properties = properties;
+        this.redis = redis;
+        this.errorWriter = errorWriter;
+        this.trustedProxies = Pattern.compile(properties.trustedProxies());
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -131,7 +142,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private String clientIp(HttpServletRequest request) {
         String forwardedFor = request.getHeader(FORWARDED_FOR_HEADER);
-        if (forwardedFor != null && !forwardedFor.isBlank()) {
+        if (trustedProxies.matcher(request.getRemoteAddr()).matches()
+                && forwardedFor != null && !forwardedFor.isBlank()) {
             int comma = forwardedFor.lastIndexOf(',');
             String closestAddress = comma >= 0 ? forwardedFor.substring(comma + 1) : forwardedFor;
             return closestAddress.trim();

@@ -108,7 +108,7 @@ class RateLimitFilterTests {
     }
 
     @Test
-    void usesSeparateRuleBucketsAndClosestForwardedAddress() throws Exception {
+    void usesSeparateRuleBucketsAndClosestForwardedAddressFromTrustedProxy() throws Exception {
         RateLimitFilter filter = filter(true);
         FilterChain chain = mock(FilterChain.class);
         when(redis.execute(any(RedisScript.class), anyList(), eq("60000"))).thenReturn("1:60000");
@@ -124,6 +124,23 @@ class RateLimitFilterTests {
                 .containsExactly(
                         List.of("clud:ratelimit:rule:/api/identity/auth/**:ip:203.0.113.9"),
                         List.of("clud:ratelimit:rule:/api/sharing/public/**:ip:127.0.0.1"));
+    }
+
+    @Test
+    void ignoresForwardedAddressFromUntrustedPeer() throws Exception {
+        RateLimitFilter filter = filter(true);
+        FilterChain chain = mock(FilterChain.class);
+        when(redis.execute(any(RedisScript.class), anyList(), eq("60000"))).thenReturn("1:60000");
+        MockHttpServletRequest request = request("/api/identity/auth/login");
+        request.setRemoteAddr("203.0.113.9");
+        request.addHeader("X-Forwarded-For", "198.51.100.1");
+
+        filter.doFilter(request, new MockHttpServletResponse(), chain);
+
+        ArgumentCaptor<List<String>> keys = ArgumentCaptor.forClass(List.class);
+        verify(redis).execute(any(RedisScript.class), keys.capture(), eq("60000"));
+        assertThat(keys.getValue()).containsExactly(
+                "clud:ratelimit:rule:/api/identity/auth/**:ip:203.0.113.9");
     }
 
     @Test
@@ -166,6 +183,7 @@ class RateLimitFilterTests {
                 true,
                 failOpen,
                 60,
+                "127\\.0\\.0\\.1",
                 List.of(
                         new RateLimitProperties.PathLimit("/api/identity/auth/**", 10),
                         new RateLimitProperties.PathLimit("/api/sharing/public/**", 30)),

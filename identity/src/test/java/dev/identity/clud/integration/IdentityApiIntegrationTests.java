@@ -283,7 +283,13 @@ class IdentityApiIntegrationTests {
     void exposesDefaultDocumentationPathsAndSecuritySchemes() throws Exception {
         HttpResponse<String> openApi = request("GET", "/v3/api-docs", null, null, null);
         assertThat(openApi.statusCode()).isEqualTo(200);
-        assertThat(openApi.body()).contains("bearerAuth", "refreshCookie");
+        assertThat(openApi.body()).contains(
+                "bearerAuth",
+                "refreshCookie",
+                "ApiError",
+                "\"code\"",
+                "\"message\"",
+                "#/components/schemas/ApiError");
 
         HttpResponse<String> swagger = request("GET", "/swagger-ui.html", null, null, null);
         assertThat(swagger.statusCode()).isIn(200, 302);

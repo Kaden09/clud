@@ -6,7 +6,6 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -24,7 +23,6 @@ import java.util.regex.Pattern;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class RateLimitFilter extends OncePerRequestFilter {
     private static final String KEY_PREFIX = "clud:ratelimit:";
     private static final String FORWARDED_FOR_HEADER = "X-Forwarded-For";

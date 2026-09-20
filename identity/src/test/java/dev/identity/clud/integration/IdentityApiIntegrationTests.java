@@ -202,6 +202,40 @@ class IdentityApiIntegrationTests {
     }
 
     @Test
+    void revokesConcurrentRotationFromAnotherRefreshSessionOnReuse() throws Exception {
+        register("user@example.com");
+        Tokens firstSession = login();
+        Tokens secondSession = login();
+        HttpResponse<String> rotatedFirst = request("POST", "/auth/refresh", null, null, firstSession.cookie());
+        assertThat(rotatedFirst.statusCode()).isEqualTo(200);
+
+        CountDownLatch start = new CountDownLatch(1);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var requests = List.of(
+                    executor.submit(() -> refreshAfter(start, firstSession.cookie())),
+                    executor.submit(() -> refreshAfter(start, secondSession.cookie())));
+            start.countDown();
+
+            List<HttpResponse<String>> responses = requests.stream().map(future -> {
+                try {
+                    return future.get();
+                }
+                catch (Exception exception) {
+                    throw new AssertionError(exception);
+                }
+            }).toList();
+            assertThat(responses.stream().map(response -> response.statusCode()).toList())
+                    .allMatch(status -> status == 200 || status == 401);
+            for (HttpResponse<String> response : responses) {
+                if (response.statusCode() == 200) {
+                    assertThat(request("POST", "/auth/refresh", null, null, cookie(response)).statusCode())
+                            .isEqualTo(401);
+                }
+            }
+        }
+    }
+
+    @Test
     void rotatesRefreshTokenAndRejectsReuse() throws Exception {
         register("user@example.com");
         Tokens login = login();

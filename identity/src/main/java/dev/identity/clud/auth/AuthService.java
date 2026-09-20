@@ -10,7 +10,6 @@ import java.util.UUID;
 
 import dev.identity.clud.event.UserRegisteredEvent;
 import dev.identity.clud.security.principal.AuthenticatedUser;
-import dev.identity.clud.security.principal.IdentityUserDetailsService;
 import dev.identity.clud.error.EmailAlreadyExistsException;
 import dev.identity.clud.error.InvalidTokenException;
 import dev.identity.clud.error.RefreshTokenReuseException;
@@ -33,7 +32,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,7 +47,6 @@ public class AuthService {
     private final JwtTokenService jwtService;
     private final RefreshCookieService cookieService;
     private final AuthenticationManager authenticationManager;
-    private final IdentityUserDetailsService userDetailsService;
     private final JwtProperties jwtProperties;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -84,7 +81,7 @@ public class AuthService {
                 new UsernamePasswordAuthenticationToken(
                         email,
                         request.password()));
-        AuthenticatedUser user = (AuthenticatedUser) authentication.getPrincipal();
+        AuthenticatedUser user = lockUser(((AuthenticatedUser) authentication.getPrincipal()).getId());
         log.info("User logged in successfully: userId={}", user.getId());
         createRefreshSession(response, user);
         return new AccessTokenResponse(jwtService.generateAccessToken(user));
@@ -98,13 +95,7 @@ public class AuthService {
 
         var tokenClaims = jwtService.validateRefreshToken(refreshToken);
         UUID userId = tokenClaims.userId();
-        AuthenticatedUser user;
-        try {
-            user = userDetailsService.loadUserById(userId);
-        }
-        catch (UsernameNotFoundException exception) {
-            throw new InvalidTokenException("Invalid refresh token");
-        }
+        AuthenticatedUser user = lockUser(userId);
         if (!user.isEnabled()
                 || !user.isAccountNonLocked()) {
             throw new InvalidTokenException("Invalid refresh token");
@@ -150,6 +141,12 @@ public class AuthService {
                 RefreshCookieService.REFRESH_TOKEN_COOKIE,
                 token,
                 jwtProperties.getRefreshTokenExpiration());
+    }
+
+    private AuthenticatedUser lockUser(UUID userId) {
+        return userRepository.findByIdForUpdate(userId)
+                .map(AuthenticatedUser::from)
+                .orElseThrow(() -> new InvalidTokenException("Invalid refresh token"));
     }
 
     private String normalizeEmail(String email) {

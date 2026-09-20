@@ -143,6 +143,26 @@ class GatewayIntegrationTests {
     }
 
     @Test
+    void proxiesPublicIdentitySwaggerUiWithForwardedPrefix() throws Exception {
+        for (String path : new String[] {
+                "/api/identity/swagger-ui.html",
+                "/api/identity/swagger-ui/index.html",
+                "/api/identity/v3/api-docs/swagger-config"
+        }) {
+            HttpResponse<String> response = send(HttpRequest.newBuilder(gatewayUri(path))
+                    .header("X-Forwarded-Prefix", "/spoofed")
+                    .GET()
+                    .build());
+
+            assertThat(response.statusCode()).as(path).isEqualTo(200);
+            assertThat(response.body())
+                    .contains("uri=" + path.substring("/api/identity".length()))
+                    .contains("forwardedPrefix=/api/identity")
+                    .contains("userId=null");
+        }
+    }
+
+    @Test
     void doesNotHostDocumentationUiOrExposeGatewayAndStorageOpenApi() throws Exception {
         for (String path : new String[] {
                 "/docs",
@@ -165,9 +185,7 @@ class GatewayIntegrationTests {
                 HttpRequest.newBuilder(gatewayUri("/api/files/nodes")).GET().build());
 
         assertThat(response.statusCode()).isEqualTo(401);
-        assertThat(response.body()).contains(
-                "\"status\":401",
-                "\"path\":\"/api/files/nodes\"");
+        assertSimpleError(response, "UNAUTHORIZED", "Authentication is required");
         assertThat(response.headers().firstValue(RequestIdFilter.REQUEST_ID_HEADER)).isPresent();
     }
 
@@ -315,7 +333,7 @@ class GatewayIntegrationTests {
         HttpResponse<String> response = send(authorizedGet("/api/files/internal/nodes/1"));
 
         assertThat(response.statusCode()).isEqualTo(403);
-        assertThat(response.body()).contains("\"status\":403");
+        assertSimpleError(response, "FORBIDDEN", "Access is denied");
     }
 
     @Test
@@ -381,8 +399,7 @@ class GatewayIntegrationTests {
         for (String path : new String[] {"/", "/unknown", "/error"}) {
             HttpResponse<String> response = send(HttpRequest.newBuilder(gatewayUri(path)).GET().build());
             assertThat(response.statusCode()).isEqualTo(404);
-            assertThat(response.body()).contains("\"status\":404", "\"path\":\"" + path + "\"")
-                    .doesNotContain("code", "timestamp", "fieldErrors");
+            assertSimpleError(response, "NOT_FOUND", "The requested endpoint does not exist");
         }
     }
 
@@ -397,6 +414,11 @@ class GatewayIntegrationTests {
 
     private HttpResponse<String> send(HttpRequest request) throws IOException, InterruptedException {
         return HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private void assertSimpleError(HttpResponse<String> response, String code, String message) {
+        assertThat(response.body()).isEqualTo(
+                "{\"code\":\"" + code + "\",\"message\":\"" + message + "\"}");
     }
 
     private HttpRequest authorizedGet(String path) {
@@ -500,6 +522,7 @@ class GatewayIntegrationTests {
                 "body=" + body,
                 "requestId=" + exchange.getRequestHeaders().getFirst(RequestIdFilter.REQUEST_ID_HEADER),
                 "customHeader=" + exchange.getRequestHeaders().getFirst("X-Custom-Header"),
+                "forwardedPrefix=" + exchange.getRequestHeaders().getFirst("X-Forwarded-Prefix"),
                 "userId=" + exchange.getRequestHeaders().getFirst(TrustedUserHeaderFilter.USER_ID_HEADER));
         byte[] responseBytes = responseBody.getBytes(StandardCharsets.UTF_8);
         int status = "POST".equals(exchange.getRequestMethod()) ? 201 : 200;

@@ -48,7 +48,14 @@ public class SecurityConfig {
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers(unknownRoute).permitAll()
-                        .requestMatchers("/auth/**", "/actuator/health/**", "/actuator/prometheus/**", "/v3/api-docs/**", "/docs/**", "/swagger-ui/**").permitAll()
+                        .requestMatchers(
+                                "/auth/**",
+                                "/actuator/health/**",
+                                "/actuator/prometheus/**",
+                                "/v3/api-docs/**",
+                                "/swagger-ui.html",
+                                "/swagger-ui/**").permitAll()
+                        .requestMatchers("/actuator/**").denyAll()
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

@@ -14,6 +14,7 @@ public record RateLimitProperties(
         boolean enabled,
         boolean failOpen,
         @Min(1) int defaultLimitPerMinute,
+        @NotBlank String trustedProxies,
         List<@Valid PathLimit> limits,
         List<String> skippedPaths
 ) {

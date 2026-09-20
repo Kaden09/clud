@@ -21,18 +21,20 @@ class ApiHttpErrorsTests {
     private final JsonMapper mapper = JsonMapper.builder().build();
     private final MockMvc mvc = MockMvcBuilders.standaloneSetup(new ProbeController(), new ApiErrorController())
             .setHandlerExceptionResolvers(new ApiHttpExceptionResolver(mapper)).build();
+    private final MockMvc adviceMvc = MockMvcBuilders.standaloneSetup(new ProbeController())
+            .setControllerAdvice(new ApiExceptionHandler()).build();
 
     @Test
     void preservesRoutingAndBindingStatuses() throws Exception {
-        assertError(get("/unknown"), HttpStatus.NOT_FOUND, "/unknown");
-        var method = assertError(post("/probe"), HttpStatus.METHOD_NOT_ALLOWED, "/probe");
+        assertError(get("/unknown"), HttpStatus.NOT_FOUND);
+        var method = assertError(post("/probe"), HttpStatus.METHOD_NOT_ALLOWED);
         assertThat(method.getHeader("Allow")).contains("GET");
-        assertError(get("/probe"), HttpStatus.BAD_REQUEST, "/probe");
-        assertError(get("/probe").param("number", "not-a-number"), HttpStatus.BAD_REQUEST, "/probe");
+        assertError(get("/probe"), HttpStatus.BAD_REQUEST);
+        assertError(get("/probe").param("number", "not-a-number"), HttpStatus.BAD_REQUEST);
         assertError(post("/body").contentType(MediaType.APPLICATION_JSON).content("{"),
-                HttpStatus.BAD_REQUEST, "/body");
+                HttpStatus.BAD_REQUEST);
         assertError(post("/body").contentType(MediaType.TEXT_PLAIN).content("value"),
-                HttpStatus.UNSUPPORTED_MEDIA_TYPE, "/body");
+                HttpStatus.UNSUPPORTED_MEDIA_TYPE);
     }
 
     @Test
@@ -48,23 +50,29 @@ class ApiHttpErrorsTests {
                 .requestAttr(RequestDispatcher.ERROR_STATUS_CODE, 500)
                 .requestAttr(RequestDispatcher.ERROR_REQUEST_URI, "/original")
                 .requestAttr(RequestDispatcher.ERROR_EXCEPTION, new IllegalStateException("private backend detail")),
-                HttpStatus.INTERNAL_SERVER_ERROR, "/original");
+                HttpStatus.INTERNAL_SERVER_ERROR);
         assertThat(response.getContentAsString()).doesNotContain("private backend detail");
-        assertError(get("/error"), HttpStatus.NOT_FOUND, "/error");
+        assertError(get("/error"), HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void unexpectedErrorsAreLoggedButNotExposed() throws Exception {
+        var response = adviceMvc.perform(get("/failure")).andReturn().getResponse();
+        assertThat(response.getStatus()).isEqualTo(500);
+        assertThat(response.getContentAsString())
+                .isEqualTo("{\"code\":\"INTERNAL_SERVER_ERROR\",\"message\":\"An unexpected error occurred. Please try again later.\"}")
+                .doesNotContain("private backend detail");
     }
 
     private org.springframework.mock.web.MockHttpServletResponse assertError(
-            MockHttpServletRequestBuilder request, HttpStatus status, String path) throws Exception {
+            MockHttpServletRequestBuilder request, HttpStatus status) throws Exception {
         var response = mvc.perform(request).andReturn().getResponse();
         assertThat(response.getStatus()).isEqualTo(status.value());
         assertThat(response.getContentType()).startsWith(MediaType.APPLICATION_JSON_VALUE);
         var json = mapper.readTree(response.getContentAsString());
-        assertThat(json.get("status").asInt()).isEqualTo(status.value());
         assertThat(json.get("code").asString()).isEqualTo(status.name());
-        assertThat(json.get("path").asString()).isEqualTo(path);
         assertThat(json.get("message").asString()).isNotBlank();
-        assertThat(json.get("timestamp").asString()).isNotBlank();
-        assertThat(json.has("fieldErrors")).isFalse();
+        assertThat(json.size()).isEqualTo(2);
         return response;
     }
 
@@ -75,5 +83,8 @@ class ApiHttpErrorsTests {
 
         @PostMapping(value = "/body", consumes = MediaType.APPLICATION_JSON_VALUE)
         String body(@RequestBody java.util.Map<String, String> body) { return "ok"; }
+
+        @GetMapping("/failure")
+        String failure() { throw new IllegalStateException("private backend detail"); }
     }
 }

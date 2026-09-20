@@ -6,7 +6,6 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -20,10 +19,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class RateLimitFilter extends OncePerRequestFilter {
     private static final String KEY_PREFIX = "clud:ratelimit:";
     private static final String FORWARDED_FOR_HEADER = "X-Forwarded-For";
@@ -48,6 +47,16 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final StringRedisTemplate redis;
     private final SecurityErrorResponseWriter errorWriter;
     private final AntPathMatcher matcher = new AntPathMatcher();
+    private final Pattern trustedProxies;
+
+    public RateLimitFilter(RateLimitProperties properties,
+                           StringRedisTemplate redis,
+                           SecurityErrorResponseWriter errorWriter) {
+        this.properties = properties;
+        this.redis = redis;
+        this.errorWriter = errorWriter;
+        this.trustedProxies = Pattern.compile(properties.trustedProxies());
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -73,7 +82,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 return;
             }
             log.error("Rate limiter unavailable, rejecting request", exception);
-            errorWriter.write(request, response, SERVICE_UNAVAILABLE,
+            errorWriter.write(response, SERVICE_UNAVAILABLE,
                     "Rate limiter is temporarily unavailable. Try again later.");
             return;
         }
@@ -86,7 +95,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         if (state.count() > limit.maxRequests()) {
             response.setHeader(RETRY_AFTER, Long.toString(resetSeconds));
-            errorWriter.write(request, response, TOO_MANY_REQUESTS,
+            errorWriter.write(response, TOO_MANY_REQUESTS,
                     "Rate limit exceeded. Try again in " + resetSeconds + " seconds.");
             return;
         }
@@ -131,7 +140,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private String clientIp(HttpServletRequest request) {
         String forwardedFor = request.getHeader(FORWARDED_FOR_HEADER);
-        if (forwardedFor != null && !forwardedFor.isBlank()) {
+        if (trustedProxies.matcher(request.getRemoteAddr()).matches()
+                && forwardedFor != null && !forwardedFor.isBlank()) {
             int comma = forwardedFor.lastIndexOf(',');
             String closestAddress = comma >= 0 ? forwardedFor.substring(comma + 1) : forwardedFor;
             return closestAddress.trim();

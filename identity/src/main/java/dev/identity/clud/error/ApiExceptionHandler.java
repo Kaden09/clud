@@ -1,13 +1,11 @@
 package dev.identity.clud.error;
 
-import java.util.Map;
-
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -16,33 +14,27 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class ApiExceptionHandler {
 
     @ExceptionHandler(EmailAlreadyExistsException.class)
-    ResponseEntity<ApiError> handleConflict(
-            EmailAlreadyExistsException exception,
-            HttpServletRequest request) {
-        return response(HttpStatus.CONFLICT, exception.getMessage(), request, null);
+    ResponseEntity<ApiError> handleConflict(EmailAlreadyExistsException exception) {
+        return response(HttpStatus.CONFLICT, exception.getMessage());
     }
 
-    @ExceptionHandler({InvalidTokenException.class, UsernameNotFoundException.class, BadCredentialsException.class})
-    ResponseEntity<ApiError> handleAuthentication(
-            RuntimeException exception,
-            HttpServletRequest request) {
-        return response(HttpStatus.UNAUTHORIZED, "Authentication failed", request, null);
+    @ExceptionHandler({InvalidTokenException.class, AuthenticationException.class})
+    ResponseEntity<ApiError> handleAuthentication() {
+        return response(HttpStatus.UNAUTHORIZED, "Authentication failed");
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    ResponseEntity<ApiError> handleAccessDenied() {
+        return response(HttpStatus.FORBIDDEN, "Access is denied");
     }
 
     @ExceptionHandler(Exception.class)
     ResponseEntity<ApiError> handleUnexpected(Exception exception, HttpServletRequest request) {
         log.error("Unexpected identity error on {}", request.getRequestURI(), exception);
-        return response(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred. Please try again later.", request, null);
+        return response(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred. Please try again later.");
     }
 
-    private ResponseEntity<ApiError> response(
-            HttpStatus status,
-            String message,
-            HttpServletRequest request,
-            Map<String, String> fieldErrors) {
-        return ResponseEntity.status(status).body(ApiError.of(status,
-                message,
-                request.getRequestURI(),
-                fieldErrors));
+    private ResponseEntity<ApiError> response(HttpStatus status, String message) {
+        return ResponseEntity.status(status).body(ApiError.of(status, message));
     }
 }

@@ -1,5 +1,7 @@
 package dev.identity.clud;
 
+import dev.identity.clud.event.IdentityEventProperties;
+import dev.identity.clud.session.RefreshCookieProperties;
 import dev.identity.clud.security.jwt.JwtProperties;
 import dev.identity.clud.security.CorsProperties;
 import org.springframework.boot.SpringApplication;
@@ -7,7 +9,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 @SpringBootApplication
-@EnableConfigurationProperties({JwtProperties.class, CorsProperties.class})
+@EnableConfigurationProperties({
+        JwtProperties.class,
+        CorsProperties.class,
+        RefreshCookieProperties.class,
+        IdentityEventProperties.class
+})
 public class CludApplication {
 
     public static void main(String[] args) {

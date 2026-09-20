@@ -4,10 +4,12 @@ import dev.identity.clud.auth.dto.AccessTokenResponse;
 import dev.identity.clud.auth.dto.LoginRequest;
 import dev.identity.clud.auth.dto.RegisterRequest;
 import dev.identity.clud.user.dto.UserResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,20 +30,29 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public AccessTokenResponse login(
+    public ResponseEntity<AccessTokenResponse> login(
             @Valid @RequestBody LoginRequest request,
             HttpServletResponse response) {
-        return authService.login(request, response);
+        return tokenResponse(authService.login(request, response));
     }
 
     @PostMapping("/refresh")
-    public AccessTokenResponse refresh(HttpServletRequest request, HttpServletResponse response) {
-        return authService.refresh(request, response);
+    @SecurityRequirement(name = "refreshCookie")
+    public ResponseEntity<AccessTokenResponse> refresh(HttpServletRequest request, HttpServletResponse response) {
+        return tokenResponse(authService.refresh(request, response));
     }
 
     @PostMapping("/logout")
+    @SecurityRequirement(name = "refreshCookie")
     public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
         authService.logout(request, response);
         return ResponseEntity.noContent().build();
+    }
+
+    private ResponseEntity<AccessTokenResponse> tokenResponse(AccessTokenResponse token) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                .header(HttpHeaders.PRAGMA, "no-cache")
+                .body(token);
     }
 }

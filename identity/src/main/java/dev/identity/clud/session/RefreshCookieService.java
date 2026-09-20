@@ -2,7 +2,6 @@ package dev.identity.clud.session;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
@@ -16,24 +15,22 @@ public class RefreshCookieService {
 
     // Refresh-токен всегда HttpOnly: это ограничение безопасности, а не настройка окружения.
     private static final boolean HTTP_ONLY = true;
+    private static final String SAME_SITE = "Lax";
 
-    @Value("${app.cookie.secure:false}")
-    private boolean secure;
+    private final RefreshCookieProperties properties;
 
-    @Value("${app.cookie.same-site:Lax}")
-    private String sameSite;
-
-    @Value("${app.cookie.path:/api/identity/auth}")
-    private String path;
+    public RefreshCookieService(RefreshCookieProperties properties) {
+        this.properties = properties;
+    }
 
     public static final String REFRESH_TOKEN_COOKIE = "refresh_token";
 
     public void addTokenCookie(HttpServletResponse response, String name, String value, long maxAgeMs) {
         ResponseCookie cookie = ResponseCookie.from(name, value)
                 .httpOnly(HTTP_ONLY)
-                .secure(secure)
-                .sameSite(sameSite)
-                .path(path)
+                .secure(properties.secure())
+                .sameSite(SAME_SITE)
+                .path(properties.path())
                 .maxAge(Duration.ofMillis(maxAgeMs))
                 .build();
 
@@ -43,9 +40,9 @@ public class RefreshCookieService {
     public void deleteCookie(HttpServletResponse response, String name) {
         ResponseCookie cookie = ResponseCookie.from(name, "")
                 .httpOnly(HTTP_ONLY)
-                .secure(secure)
-                .sameSite(sameSite)
-                .path(path)
+                .secure(properties.secure())
+                .sameSite(SAME_SITE)
+                .path(properties.path())
                 .maxAge(Duration.ZERO)
                 .build();
 

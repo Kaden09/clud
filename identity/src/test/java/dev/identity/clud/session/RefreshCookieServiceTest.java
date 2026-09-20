@@ -6,7 +6,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.test.util.ReflectionTestUtils;
 
 class RefreshCookieServiceTest {
 
@@ -14,10 +13,8 @@ class RefreshCookieServiceTest {
 
     @BeforeEach
     void setUp() {
-        cookieService = new RefreshCookieService();
-        ReflectionTestUtils.setField(cookieService, "secure", false);
-        ReflectionTestUtils.setField(cookieService, "sameSite", "Lax");
-        ReflectionTestUtils.setField(cookieService, "path", "/api/identity/auth");
+        cookieService = new RefreshCookieService(
+                new RefreshCookieProperties(false, "/api/identity/auth"));
     }
 
     @Test
@@ -27,7 +24,7 @@ class RefreshCookieServiceTest {
         cookieService.addTokenCookie(response, RefreshCookieService.REFRESH_TOKEN_COOKIE, "token", 60_000);
 
         assertThat(response.getHeader(HttpHeaders.SET_COOKIE))
-                .contains("Path=/api/identity/auth", "HttpOnly");
+                .contains("Path=/api/identity/auth", "HttpOnly", "SameSite=Lax");
     }
 
     @Test
@@ -37,6 +34,6 @@ class RefreshCookieServiceTest {
         cookieService.deleteCookie(response, RefreshCookieService.REFRESH_TOKEN_COOKIE);
 
         assertThat(response.getHeader(HttpHeaders.SET_COOKIE))
-                .contains("Path=/api/identity/auth", "Max-Age=0", "HttpOnly");
+                .contains("Path=/api/identity/auth", "Max-Age=0", "HttpOnly", "SameSite=Lax");
     }
 }

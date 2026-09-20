@@ -64,7 +64,7 @@ public class ApiHttpExceptionResolver extends AbstractHandlerExceptionResolver {
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             if (!"HEAD".equals(request.getMethod())) {
                 jsonMapper.writeValue(response.getOutputStream(),
-                        ApiError.of(status, message, request.getRequestURI()));
+                        ApiError.of(status, message));
             }
             return new ModelAndView();
         }

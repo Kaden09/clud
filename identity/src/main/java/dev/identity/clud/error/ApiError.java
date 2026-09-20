@@ -1,27 +1,19 @@
 package dev.identity.clud.error;
 
-import java.time.Instant;
-import java.util.Map;
-
-import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 
-@Schema(description = "Consistent API error. Code is the uppercase HTTP status name; fieldErrors is present only for validation failures.")
+@Schema(description = "Identity API error. Code is the uppercase HTTP status name.")
 public record ApiError(
-        Instant timestamp,
-        int status,
         @Schema(example = "NOT_FOUND") String code,
-        String message,
-        String path,
-        @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, String> fieldErrors) {
+        String message) {
 
-    public static ApiError of(HttpStatusCode status, String message, String path, Map<String, String> fieldErrors) {
+    public static ApiError of(HttpStatusCode status, String message) {
         HttpStatus standard = HttpStatus.resolve(status.value());
-        return new ApiError(Instant.now(), status.value(),
+        return new ApiError(
                 standard == null ? "HTTP_" + status.value() : standard.name(),
-                message, path, fieldErrors == null ? Map.of() : fieldErrors);
+                message);
     }
 
     public static String defaultMessage(HttpStatusCode status) {

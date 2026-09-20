@@ -21,8 +21,8 @@ class ApiHttpErrorsTests {
 
     @Test
     void preservesRoutingStatuses() throws Exception {
-        assertError(get("/unknown"), HttpStatus.NOT_FOUND, "/unknown");
-        var method = assertError(post("/probe"), HttpStatus.METHOD_NOT_ALLOWED, "/probe");
+        assertError(get("/unknown"), HttpStatus.NOT_FOUND);
+        var method = assertError(post("/probe"), HttpStatus.METHOD_NOT_ALLOWED);
         assertThat(method.getHeader("Allow")).contains("GET");
     }
 
@@ -39,23 +39,20 @@ class ApiHttpErrorsTests {
                 .requestAttr(RequestDispatcher.ERROR_STATUS_CODE, 500)
                 .requestAttr(RequestDispatcher.ERROR_REQUEST_URI, "/original")
                 .requestAttr(RequestDispatcher.ERROR_EXCEPTION, new IllegalStateException("private backend detail")),
-                HttpStatus.INTERNAL_SERVER_ERROR, "/original");
+                HttpStatus.INTERNAL_SERVER_ERROR);
         assertThat(response.getContentAsString()).doesNotContain("private backend detail");
-        assertError(get("/error"), HttpStatus.NOT_FOUND, "/error");
+        assertError(get("/error"), HttpStatus.NOT_FOUND);
     }
 
     private org.springframework.mock.web.MockHttpServletResponse assertError(
-            MockHttpServletRequestBuilder request, HttpStatus status, String path) throws Exception {
+            MockHttpServletRequestBuilder request, HttpStatus status) throws Exception {
         var response = mvc.perform(request).andReturn().getResponse();
         assertThat(response.getStatus()).isEqualTo(status.value());
         assertThat(response.getContentType()).startsWith(MediaType.APPLICATION_JSON_VALUE);
         var json = mapper.readTree(response.getContentAsString());
-        assertThat(json.get("status").asInt()).isEqualTo(status.value());
-        assertThat(json.get("path").asString()).isEqualTo(path);
+        assertThat(json.get("code").asString()).isEqualTo(status.name());
         assertThat(json.get("message").asString()).isNotBlank();
-        assertThat(json.has("code")).isFalse();
-        assertThat(json.has("timestamp")).isFalse();
-        assertThat(json.has("fieldErrors")).isFalse();
+        assertThat(json.size()).isEqualTo(2);
         return response;
     }
 
